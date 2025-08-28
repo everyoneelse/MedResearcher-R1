@@ -4795,4 +4795,4 @@ if __name__ == '__main__':
     print("📋 Trace功能: 每个请求都有唯一的trace ID用于追踪")
     print("="*50)
     
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000, threaded=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
