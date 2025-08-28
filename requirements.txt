@@ -1,0 +1,46 @@
+## common
+openai>=1.0.0
+requests>=2.31.0
+flask==3.0.0
+
+## TrajectoryGenerationPipeline
+# LangGraph and LangChain dependencies
+langgraph>=0.2.0
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-openai>=0.1.0
+
+# Basic dependencies
+transformers>=4.30.0
+tiktoken>=0.4.0
+tqdm>=4.64.0
+pydantic>=2.5.0
+
+# Server
+flask-cors==4.0.0
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+
+## KnowledgeGraphConstruction
+# LLM client
+aiohttp>=3.8.0
+
+# data processing
+pandas>=1.5.0
+numpy>=1.21.0
+networkx>=3.0
+
+# search engine
+tavily-python>=0.3.0
+
+# environment
+python-dotenv>=0.19.0
+rich>=13.0.0
+
+# context processing
+beautifulsoup4>=4.11.0
+
+# Web App
+flask-socketio>=5.0.0
+python-socketio>=5.0.0
+

@@ -1,0 +1,1998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识图谱构建系统</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .header {
+            background: #ffffff;
+            padding: 32px 40px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #0f172a;
+            letter-spacing: -0.025em;
+        }
+        
+        .header p {
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        
+        .controls {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .input-group label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+            letter-spacing: 0.025em;
+        }
+        
+        .input-group input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            min-width: 180px;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.025em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 24px;
+            height: 700px;
+        }
+        
+        .panel {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            padding: 24px 32px;
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .panel-header::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 24px 32px;
+            overflow: auto;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            transition: width 0.3s ease;
+            width: 0%;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .status-text {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #fafbfc;
+            border-radius: 16px;
+            border: 2px dashed #e2e8f0;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        #graph-container.has-content {
+            border-color: #3b82f6;
+            border-style: solid;
+            background: #ffffff;
+        }
+
+        #graph-container svg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #graph-container svg:active {
+            cursor: grabbing;
+        }
+
+        .graph-controls {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .link {
+            stroke: #94a3b8;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+
+        .link:hover {
+            stroke: #3b82f6;
+            stroke-width: 3;
+            opacity: 1;
+        }
+
+        /* 旧的node样式已移动到后面统一定义 */
+
+        .node-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-anchor: middle;
+            fill: #374151;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+        }
+
+        .link-label {
+            font-size: 10px;
+            font-weight: 400;
+            text-anchor: middle;
+            fill: #6b7280;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .arrowhead {
+            fill: #94a3b8;
+            transition: fill 0.2s ease;
+        }
+
+        .link:hover + .arrowhead {
+            fill: #3b82f6;
+        }
+
+        .graph-info {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #6b7280;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 空状态样式 */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* 加载状态样式 */
+        .loading-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* QA结果样式 */
+        #qa-result-container {
+            margin: 20px 0;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .qa-result-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .qa-result-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-small:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .qa-result-content {
+            padding: 20px;
+        }
+        
+        .qa-question, .qa-answer {
+            margin-bottom: 20px;
+        }
+        
+        .qa-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .qa-text {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            line-height: 1.6;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        
+        .qa-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .qa-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .qa-meta-label {
+            font-weight: 500;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .qa-meta-item span:last-child {
+            background: #dbeafe;
+            color: #3b82f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .qa-reasoning {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .qa-result-content.collapsed {
+            display: none;
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #6b7280;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        
+        .log-entry {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #3b82f6;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+            line-height: 1.5;
+            transition: all 0.2s ease;
+        }
+        
+        .log-entry:hover {
+            background: #f1f5f9;
+        }
+        
+        .log-entry .timestamp {
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .log-entry .level {
+            color: #3b82f6;
+            font-weight: 600;
+            margin: 0 8px;
+        }
+        
+        .log-entry .message {
+            color: #1e293b;
+        }
+        
+        .log-entry.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .log-entry.error .level {
+            color: #ef4444;
+        }
+        
+        .log-entry.success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .log-entry.success .level {
+            color: #10b981;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+        
+        .stat-card .number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card .label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* 节点样式已在下方统一定义 */
+        
+        /* 删除了重复的.node:hover定义 */
+        
+        .link {
+            stroke: #94a3b8;
+            stroke-width: 2;
+            stroke-opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+        
+        .link:hover {
+            stroke-opacity: 1;
+            stroke-width: 3;
+        }
+        
+        .node-label {
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            fill: #1e293b;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .link-label {
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 400;
+            fill: #64748b;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+                height: auto;
+            }
+            
+            .panel:last-child {
+                height: 400px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .input-group input {
+                min-width: 100%;
+            }
+            
+            .main-content {
+                gap: 16px;
+            }
+            
+            .panel-content {
+                padding: 16px 20px;
+            }
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+        
+        .tooltip.show {
+            opacity: 1;
+        }
+        
+        /* 节点拖拽状态 */
+        .node.dragging {
+            stroke: #ef4444 !important;
+            stroke-width: 4px !important;
+        }
+        
+        /* 节点样式统一定义 */
+        .node {
+            stroke: #ffffff;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: stroke 0.2s ease, stroke-width 0.2s ease;
+        }
+        
+        .node:hover {
+            stroke: #3b82f6 !important;
+            stroke-width: 3px !important;
+        }
+        
+        /* 采样节点（星座图）样式 */
+        .node.sampled {
+            fill: #3b82f6 !important;
+            stroke: #1d4ed8 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        }
+        
+        /* 采样连线样式 */
+        .link.sampled {
+            stroke: #3b82f6 !important;
+            stroke-width: 3px !important;
+            opacity: 1 !important;
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+        }
+        
+        /* 工具提示样式 */
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            max-width: 200px;
+            word-wrap: break-word;
+        }
+        
+        #tooltip.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>知识图谱构建系统</h1>
+            <p>AI驱动的智能知识图谱生成与问答数据构建平台</p>
+        </div>
+        
+        <div class="controls">
+            <div class="input-group">
+                <label for="initial-entity">初始实体</label>
+                <input type="text" id="initial-entity" placeholder="例如：量子计算机" value="量子计算机">
+            </div>
+            <div class="input-group">
+                <label for="max-nodes">最大节点数</label>
+                <input type="number" id="max-nodes" value="30" min="10" max="100">
+            </div>
+            <div class="input-group">
+                <label for="sample-size">采样大小</label>
+                <input type="number" id="sample-size" value="8" min="3" max="20">
+            </div>
+            <button id="start-btn" class="btn btn-primary">
+                <span class="btn-text">开始构建</span>
+            </button>
+            <button id="stop-btn" class="btn btn-danger" style="display: none;">
+                停止构建
+            </button>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    知识图谱可视化
+                </div>
+                <div class="panel-content" style="padding: 0;">
+                    <div id="graph-container">
+                        <div class="empty-state">
+                            <div class="icon">🌐</div>
+                            <h3>准备构建知识图谱</h3>
+                            <p>点击"开始构建"按钮来生成知识图谱</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    构建进度与日志
+                </div>
+                <div class="panel-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="number" id="nodes-count">0</div>
+                            <div class="label">节点数量</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="number" id="edges-count">0</div>
+                            <div class="label">关系数量</div>
+                        </div>
+                    </div>
+                    
+                    <div id="progress-info" style="display: none;">
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="status-text" id="status-text">准备开始...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- QA结果显示区域 -->
+                    <div id="qa-result-container" style="display: none;">
+                        <div class="qa-result-header">
+                            <h3>🎯 生成的QA问答对</h3>
+                            <button id="toggle-qa-btn" class="btn btn-small">折叠</button>
+                        </div>
+                        <div class="qa-result-content" id="qa-result-content">
+                            <div class="qa-question">
+                                <div class="qa-label">❓ 问题</div>
+                                <div class="qa-text" id="qa-question-text"></div>
+                            </div>
+                            <div class="qa-answer">
+                                <div class="qa-label">✅ 答案</div>
+                                <div class="qa-text" id="qa-answer-text"></div>
+                            </div>
+                            <div class="qa-meta">
+                                <div class="qa-meta-item">
+                                    <span class="qa-meta-label">类型:</span>
+                                    <span id="qa-type"></span>
+                                </div>
+                                <div class="qa-meta-item">
+                                    <span class="qa-meta-label">复杂度:</span>
+                                    <span id="qa-complexity"></span>
+                                </div>
+                                <div class="qa-reasoning" id="qa-reasoning" style="display: none;">
+                                    <div class="qa-label">推理过程</div>
+                                    <div class="qa-text" id="qa-reasoning-text"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="logs-container">
+                        <div class="log-entry">
+                            <span class="timestamp">等待中</span>
+                            <span class="level">INFO</span>
+                            <span class="message">系统已就绪，可以开始构建知识图谱</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Socket.IO 连接
+        const socket = io();
+        
+        // DOM 元素
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const initialEntity = document.getElementById('initial-entity');
+        const maxNodes = document.getElementById('max-nodes');
+        const sampleSize = document.getElementById('sample-size');
+        const progressInfo = document.getElementById('progress-info');
+        const progressFill = document.getElementById('progress-fill');
+        const statusText = document.getElementById('status-text');
+        const logsContainer = document.getElementById('logs-container');
+        const nodesCount = document.getElementById('nodes-count');
+        const edgesCount = document.getElementById('edges-count');
+        const graphContainer = document.getElementById('graph-container');
+        const btnText = startBtn.querySelector('.btn-text');
+        
+        // 状态管理
+        let isBuilding = false;
+        let svg = null;
+        let g = null;
+        let simulation = null;
+        let zoom = null;
+        let width = 0;
+        let height = 0;
+        
+        // 初始化图表
+        function initGraph() {
+            const containerRect = graphContainer.getBoundingClientRect();
+            width = containerRect.width;
+            height = containerRect.height;
+            
+            // 清除现有内容
+            graphContainer.innerHTML = '';
+            
+            // 添加控制按钮
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'graph-controls';
+            controlsDiv.innerHTML = `
+                <button class="control-btn" onclick="zoomIn()" title="放大">+</button>
+                <button class="control-btn" onclick="zoomOut()" title="缩小">-</button>
+                <button class="control-btn" onclick="resetZoom()" title="重置视图">⌂</button>
+                <button class="control-btn" onclick="fitToView()" title="适应视图">⊡</button>
+                <button class="control-btn" onclick="redistributeNodes()" title="重新分布节点">⟲</button>
+                <button class="control-btn" onclick="testGraph()" title="测试图表">测试</button>
+            `;
+            graphContainer.appendChild(controlsDiv);
+            
+            // 添加图谱信息
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'graph-info';
+            infoDiv.innerHTML = `
+                <div>拖拽画布：平移视图 | 滚轮：缩放 | 拖拽节点：调整位置</div>
+            `;
+            graphContainer.appendChild(infoDiv);
+            
+            // 创建SVG
+            svg = d3.select('#graph-container')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // 添加缩放行为
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on('zoom', function(event) {
+                    g.attr('transform', event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // 创建主绘图组
+            g = svg.append('g');
+            
+            // 添加定义元素用于箭头和渐变
+            const defs = svg.append('defs');
+            
+            // 箭头标记
+            defs.append('marker')
+                .attr('id', 'arrowhead')
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 28)
+                .attr('refY', 0)
+                .attr('markerWidth', 8)
+                .attr('markerHeight', 8)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('class', 'arrowhead');
+            
+            // 渐变定义
+            const gradient = defs.append('linearGradient')
+                .attr('id', 'nodeGradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .attr('stop-color', '#ffffff')
+                .attr('stop-opacity', 0.3);
+            
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .attr('stop-color', '#000000')
+                .attr('stop-opacity', 0.1);
+            
+            // 初始化力导向图 - 强化节点分散效果
+            simulation = d3.forceSimulation()
+                .force('link', d3.forceLink().id(d => d.id).distance(100).strength(0.3))
+                .force('charge', d3.forceManyBody().strength(-2000).distanceMax(600))
+                .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))
+                .force('collision', d3.forceCollide().radius(50).strength(1.0))
+                .force('x', d3.forceX(width / 2).strength(0.02))
+                .force('y', d3.forceY(height / 2).strength(0.02))
+                .alphaDecay(0.003)
+                .velocityDecay(0.6);
+        }
+        
+        // 创建带有正确位置的节点
+        function createPositionedNode(id, name, type, index, totalNodes) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            let x, y;
+            if (totalNodes <= 1) {
+                x = centerX;
+                y = centerY;
+            } else if (totalNodes <= 6) {
+                // 少量节点时使用圆形分布
+                const angle = (index / totalNodes) * 2 * Math.PI;
+                const radius = Math.min(width, height) * 0.2;
+                x = centerX + Math.cos(angle) * radius;
+                y = centerY + Math.sin(angle) * radius;
+            } else {
+                // 多节点时使用网格+随机分布
+                const cols = Math.ceil(Math.sqrt(totalNodes));
+                const rows = Math.ceil(totalNodes / cols);
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+                
+                const spacingX = (width * 0.8) / Math.max(cols - 1, 1);
+                const spacingY = (height * 0.8) / Math.max(rows - 1, 1);
+                
+                x = (width * 0.1) + col * spacingX + (Math.random() - 0.5) * 40;
+                y = (height * 0.1) + row * spacingY + (Math.random() - 0.5) * 40;
+            }
+            
+            return {
+                id: id,
+                name: name,
+                type: type,
+                x: Math.max(50, Math.min(width - 50, x)),
+                y: Math.max(50, Math.min(height - 50, y))
+            };
+        }
+
+        // 增量更新图表
+        let currentGraphData = {nodes: [], links: []};
+        
+        function updateGraph(data, isIncremental = true) {
+            if (!svg || !simulation) {
+                initGraph();
+            }
+            
+            const nodes = data.nodes || [];
+            const links = data.links || [];
+            
+            // 验证输入数据
+            console.log('原始数据:', {nodes, links});
+            if (!Array.isArray(nodes) || !Array.isArray(links)) {
+                console.error('Invalid data format: nodes and links must be arrays');
+                return;
+            }
+            
+            if (nodes.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            // 如果是增量更新，合并新数据到现有数据
+            if (isIncremental) {
+                const existingNodeIds = new Set(currentGraphData.nodes.map(n => n.id));
+                const existingLinkIds = new Set(currentGraphData.links.map(l => `${l.source.id || l.source}-${l.target.id || l.target}`));
+                
+                let newNodesCount = 0;
+                let newLinksCount = 0;
+                
+                // 添加新节点
+                nodes.forEach(node => {
+                    const nodeId = typeof node === 'string' ? node : (node.id || node.name);
+                    if (!existingNodeIds.has(nodeId)) {
+                        currentGraphData.nodes.push(node);
+                        existingNodeIds.add(nodeId);
+                        newNodesCount++;
+                    } else if (node.sampled) {
+                        // 更新现有节点的采样状态
+                        const existingNode = currentGraphData.nodes.find(n => n.id === nodeId);
+                        if (existingNode) {
+                            existingNode.sampled = true;
+                        }
+                    }
+                });
+                
+                // 添加新连线
+                links.forEach(link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id || link.source.name : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id || link.target.name : link.target;
+                    const linkId = `${sourceId}-${targetId}`;
+                    
+                    if (!existingLinkIds.has(linkId)) {
+                        currentGraphData.links.push(link);
+                        existingLinkIds.add(linkId);
+                        newLinksCount++;
+                    } else if (link.sampled) {
+                        // 更新现有连线的采样状态
+                        const existingLink = currentGraphData.links.find(l => 
+                            `${l.source.id || l.source}-${l.target.id || l.target}` === linkId
+                        );
+                        if (existingLink) {
+                            existingLink.sampled = true;
+                        }
+                    }
+                });
+                
+                console.log('增量更新后的数据:', {
+                    totalNodes: currentGraphData.nodes.length,
+                    totalLinks: currentGraphData.links.length,
+                    newNodes: newNodesCount,
+                    newLinks: newLinksCount,
+                    sampledNodes: nodes.filter(n => n.sampled).length,
+                    sampledLinks: links.filter(l => l.sampled).length
+                });
+            } else {
+                // 完全替换数据
+                currentGraphData = {nodes: [...nodes], links: [...links]};
+                console.log('完全替换数据:', {nodes: nodes.length, links: links.length});
+            }
+            
+            // 渲染更新后的图
+            renderGraph(currentGraphData, isIncremental);
+        }
+        
+        // 渲染图表
+        function renderGraph(data, isIncremental = true) {
+            const nodes = data.nodes || [];
+            const links = data.links || [];
+            
+            // 数据预处理 - 确保节点是对象并设置初始位置
+            const processedNodes = nodes.map((node, index) => {
+                // 确保节点是对象格式
+                let nodeId, nodeName, nodeType;
+                if (typeof node === 'string') {
+                    nodeId = node;
+                    nodeName = node;
+                    nodeType = 'default';
+                } else {
+                    nodeId = node.id || node.name || `node_${index}`;
+                    nodeName = node.name || node.id || `Node ${index + 1}`;
+                    nodeType = node.type || 'default';
+                }
+                
+                // 检查是否为采样节点（星座图）
+                const isSampled = node.sampled === true || node.highlighted === true;
+                
+                // 如果已有有效位置，保持不变
+                if (typeof node === 'object' && node.x && node.y && !isNaN(node.x) && !isNaN(node.y)) {
+                    return {
+                        id: nodeId,
+                        name: nodeName,
+                        type: nodeType,
+                        x: node.x,
+                        y: node.y,
+                        sampled: isSampled,
+                        ...node
+                    };
+                }
+                
+                // 使用统一的位置分配函数
+                const positionedNode = createPositionedNode(nodeId, nodeName, nodeType, index, nodes.length);
+                positionedNode.sampled = isSampled;
+                return positionedNode;
+            });
+            
+            // 创建节点ID映射，用于快速查找
+            const nodeIdSet = new Set(processedNodes.map(node => node.id));
+            
+            // 处理连接数据 - 确保source和target引用正确的节点ID
+            const processedLinks = [];
+            links.forEach(link => {
+                // 确保连接对象格式正确
+                if (typeof link === 'object' && link.source && link.target) {
+                    const sourceId = typeof link.source === 'object' ? link.source.id || link.source.name : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id || link.target.name : link.target;
+                    
+                    // 检查是否为采样连线（星座图）
+                    const isSampled = link.sampled === true || link.highlighted === true;
+                    
+                                         // 检查源节点和目标节点是否存在
+                    if (!nodeIdSet.has(sourceId)) {
+                        console.warn(`Source node not found: ${sourceId}, adding it to nodes`);
+                        const newNodeIndex = processedNodes.length;
+                        // 估算最终节点总数（当前节点数 + 潜在缺失节点数）
+                        const estimatedTotal = processedNodes.length + links.length;
+                        const newNode = createPositionedNode(sourceId, sourceId, 'unknown', newNodeIndex, estimatedTotal);
+                        processedNodes.push(newNode);
+                        nodeIdSet.add(sourceId);
+                    }
+                    
+                    if (!nodeIdSet.has(targetId)) {
+                        console.warn(`Target node not found: ${targetId}, adding it to nodes`);
+                        const newNodeIndex = processedNodes.length;
+                        // 估算最终节点总数
+                        const estimatedTotal = processedNodes.length + links.length;
+                        const newNode = createPositionedNode(targetId, targetId, 'unknown', newNodeIndex, estimatedTotal);
+                        processedNodes.push(newNode);
+                        nodeIdSet.add(targetId);
+                    }
+                    
+                    processedLinks.push({
+                        source: sourceId,
+                        target: targetId,
+                        relation: link.relation || link.relationship || link.type || '关联',
+                        weight: link.weight || 1,
+                        sampled: isSampled
+                    });
+                } else {
+                    console.warn('Invalid link data:', link);
+                }
+            });
+            
+            // 更新统计信息和状态
+            nodesCount.textContent = processedNodes.length;
+            edgesCount.textContent = processedLinks.length;
+            
+            // 显示有内容状态
+            if (processedNodes.length > 0) {
+                graphContainer.classList.add('has-content');
+            }
+            
+            // 数据绑定和增量更新
+            // 处理连接线
+            const linkSelection = g.selectAll('.link')
+                .data(processedLinks, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+                
+            // 移除旧的连接线
+            linkSelection.exit()
+                .transition()
+                .duration(300)
+                .style('opacity', 0)
+                .remove();
+            
+            // 更新现有连接线
+            linkSelection
+                .classed('sampled', d => d.sampled)
+                .style('stroke', d => d.sampled ? '#3b82f6' : '#94a3b8')
+                .style('stroke-width', d => d.sampled ? 3 : 2)
+                .style('opacity', d => d.sampled ? 1 : 0.7);
+            
+            // 添加新的连接线
+            const newLinks = linkSelection.enter()
+                .append('line')
+                .attr('class', 'link')
+                .classed('sampled', d => d.sampled)
+                .attr('marker-end', 'url(#arrowhead)')
+                .style('stroke', d => d.sampled ? '#3b82f6' : '#94a3b8')
+                .style('stroke-width', d => d.sampled ? 3 : 2)
+                .style('opacity', 0)
+                .on('mouseover', function(event, d) {
+                    if (this._linkHoverTimeout) clearTimeout(this._linkHoverTimeout);
+                    this._linkHoverTimeout = setTimeout(() => {
+                        d3.select(this).style('stroke', '#3b82f6').style('stroke-width', 3);
+                        showTooltip(event, d.relation || 'unknown', `${d.source.id || d.source} → ${d.target.id || d.target}`, false);
+                    }, 100);
+                })
+                .on('mouseout', function(event, d) {
+                    if (this._linkHoverTimeout) clearTimeout(this._linkHoverTimeout);
+                    this._linkHoverTimeout = setTimeout(() => {
+                        const originalStroke = d.sampled ? '#3b82f6' : '#94a3b8';
+                        const originalWidth = d.sampled ? 3 : 2;
+                        d3.select(this).style('stroke', originalStroke).style('stroke-width', originalWidth);
+                        hideTooltip();
+                    }, 150);
+                });
+            
+            // 新连接线入场动画
+            newLinks.transition()
+                .duration(500)
+                .style('opacity', d => d.sampled ? 1 : 0.7);
+            
+            // 合并新旧连接线
+            const allLinks = newLinks.merge(linkSelection);
+            
+            // 处理节点
+            const nodeSelection = g.selectAll('.node')
+                .data(processedNodes, d => d.id);
+                
+            // 移除旧节点
+            nodeSelection.exit()
+                .transition()
+                .duration(300)
+                .attr('r', 0)
+                .style('opacity', 0)
+                .remove();
+            
+            // 更新现有节点
+            nodeSelection
+                .classed('sampled', d => d.sampled)
+                .style('fill', d => d.sampled ? '#3b82f6' : getNodeColor(d.type || 'default'))
+                .style('stroke', d => d.sampled ? '#1d4ed8' : '#ffffff')
+                .style('stroke-width', d => d.sampled ? 4 : 2);
+            
+            // 添加新节点
+            const newNodes = nodeSelection.enter()
+                .append('circle')
+                .attr('class', 'node')
+                .classed('sampled', d => d.sampled)
+                .attr('r', 0)
+                .attr('cx', d => d.x || width / 2)
+                .attr('cy', d => d.y || height / 2)
+                .style('fill', d => d.sampled ? '#3b82f6' : getNodeColor(d.type || 'default'))
+                .style('stroke', d => d.sampled ? '#1d4ed8' : '#ffffff')
+                .style('stroke-width', d => d.sampled ? 4 : 2)
+                .style('cursor', 'pointer')
+                .style('opacity', 0)
+                .call(d3.drag()
+                    .filter(event => event.button === 0)
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended))
+                .on('mouseover', function(event, d) {
+                    if (this._hoverTimeout) clearTimeout(this._hoverTimeout);
+                    this._hoverTimeout = setTimeout(() => {
+                        showTooltip(event, d.name || d.id, d.type + (d.sampled ? ' (星座)' : ''), true);
+                        d3.select(this).style('stroke', '#3b82f6').style('stroke-width', '3px');
+                    }, 50);
+                })
+                .on('mouseout', function(event, d) {
+                    if (this._hoverTimeout) clearTimeout(this._hoverTimeout);
+                    this._hoverTimeout = setTimeout(() => {
+                        hideTooltip();
+                        const originalStroke = d.sampled ? '#1d4ed8' : '#ffffff';
+                        const originalWidth = d.sampled ? 4 : 2;
+                        d3.select(this).style('stroke', originalStroke).style('stroke-width', originalWidth + 'px');
+                    }, 100);
+                })
+                .on('click', function(event, d) {
+                    highlightConnections(d);
+                });
+            
+            // 新节点入场动画
+            newNodes.transition()
+                .duration(500)
+                .attr('r', d => Math.max(20, Math.min(30, (d.connections || 1) * 5)))
+                .style('opacity', 1);
+            
+            // 合并新旧节点
+            const allNodes = newNodes.merge(nodeSelection);
+            
+            // 处理节点标签
+            const labelSelection = g.selectAll('.node-label')
+                .data(processedNodes, d => d.id);
+                
+            labelSelection.exit()
+                .transition()
+                .duration(300)
+                .style('opacity', 0)
+                .remove();
+            
+            const newLabels = labelSelection.enter()
+                .append('text')
+                .attr('class', 'node-label')
+                .text(d => truncateText(d.name || d.id, 12))
+                .attr('dy', 40)
+                .style('font-size', '12px')
+                .style('opacity', 0)
+                .style('fill', d => d.sampled ? '#1d4ed8' : '#374151')
+                .style('font-weight', d => d.sampled ? 'bold' : 'normal');
+            
+            newLabels.transition()
+                .duration(500)
+                .style('opacity', 1);
+            
+            const allLabels = newLabels.merge(labelSelection);
+            
+            // 处理连接线标签
+            const linkLabelSelection = g.selectAll('.link-label')
+                .data(processedLinks, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+                
+            linkLabelSelection.exit()
+                .transition()
+                .duration(300)
+                .style('opacity', 0)
+                .remove();
+            
+            const newLinkLabels = linkLabelSelection.enter()
+                .append('text')
+                .attr('class', 'link-label')
+                .text(d => d.relation || d.type || '关联')
+                .style('font-size', '10px')
+                .style('opacity', 0)
+                .style('fill', d => d.sampled ? '#1d4ed8' : '#6b7280')
+                .style('font-weight', d => d.sampled ? 'bold' : 'normal');
+            
+            newLinkLabels.transition()
+                .duration(500)
+                .style('opacity', d => d.sampled ? 1 : 0.7);
+            
+            const allLinkLabels = newLinkLabels.merge(linkLabelSelection);
+            
+            // 更新力导向图
+            simulation.nodes(processedNodes);
+            simulation.force('link').links(processedLinks);
+            simulation.alpha(isIncremental ? 0.3 : 1).restart();
+            
+            simulation.on('tick', () => {
+                allLinks
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                allNodes
+                    .attr('cx', d => d.x = Math.max(40, Math.min(width - 40, d.x)))
+                    .attr('cy', d => d.y = Math.max(40, Math.min(height - 40, d.y)));
+                
+                allLabels
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+                
+                allLinkLabels
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+            });
+            
+            // 延长节点稳定时间，确保充分分散
+            setTimeout(() => {
+                if (g && !g.selectAll('.node').empty()) {
+                    if (!isIncremental) {
+                        fitToView();
+                    }
+                }
+            }, isIncremental ? 1000 : 3000);
+            
+            // 添加调试信息
+            console.log(`图表${isIncremental ? '增量' : '完全'}更新: ${processedNodes.length} 个节点, ${processedLinks.length} 个关系`);
+            console.log('处理后的节点:', processedNodes.map(n => ({id: n.id, name: n.name, sampled: n.sampled, x: n.x, y: n.y})));
+            console.log('处理后的连接:', processedLinks.map(l => ({source: l.source, target: l.target, relation: l.relation, sampled: l.sampled})));
+        }
+        
+        // 显示空状态
+        function showEmptyState() {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            emptyState.innerHTML = `
+                <div class="empty-state-icon">🕸️</div>
+                <div>暂无知识图谱数据</div>
+                <div style="font-size: 12px; margin-top: 8px; opacity: 0.7;">请先开始构建知识图谱</div>
+            `;
+            graphContainer.appendChild(emptyState);
+        }
+        
+        // 清空图表并重置状态
+        function clearGraph() {
+            // 停止现有的仿真
+            if (simulation) {
+                simulation.stop();
+            }
+            
+            // 重置全局变量
+            svg = null;
+            g = null;
+            simulation = null;
+            zoom = null;
+            
+            // 重置增量更新的数据
+            currentGraphData = {nodes: [], links: []};
+            
+            // 清空容器并移除内容状态
+            graphContainer.innerHTML = '';
+            graphContainer.classList.remove('has-content');
+            
+            // 重置统计数据
+            nodesCount.textContent = '0';
+            edgesCount.textContent = '0';
+        }
+        
+        // 高亮连接
+        function highlightConnections(node) {
+            // 重置所有样式
+            g.selectAll('.node').style('opacity', 0.3);
+            g.selectAll('.link').style('opacity', 0.1);
+            g.selectAll('.node-label').style('opacity', 0.3);
+            
+            // 高亮选中节点
+            g.selectAll('.node').filter(d => d.id === node.id).style('opacity', 1);
+            g.selectAll('.node-label').filter(d => d.id === node.id).style('opacity', 1);
+            
+            // 高亮相关连接和节点
+            g.selectAll('.link').filter(d => d.source.id === node.id || d.target.id === node.id)
+                .style('opacity', 1)
+                .style('stroke', '#3b82f6')
+                .style('stroke-width', 3);
+            
+            g.selectAll('.node').filter(d => 
+                g.selectAll('.link').data().some(link => 
+                    (link.source.id === node.id && link.target.id === d.id) ||
+                    (link.target.id === node.id && link.source.id === d.id)
+                )
+            ).style('opacity', 1);
+            
+            g.selectAll('.node-label').filter(d => 
+                g.selectAll('.link').data().some(link => 
+                    (link.source.id === node.id && link.target.id === d.id) ||
+                    (link.target.id === node.id && link.source.id === d.id)
+                )
+            ).style('opacity', 1);
+            
+            // 3秒后恢复
+            setTimeout(() => {
+                g.selectAll('.node').style('opacity', 1);
+                g.selectAll('.link').style('opacity', 0.7).style('stroke', '#94a3b8').style('stroke-width', 2);
+                g.selectAll('.node-label').style('opacity', 1);
+            }, 3000);
+        }
+        
+        // 截断文本
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+        
+        // 缩放控制函数
+        function zoomIn() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.5);
+        }
+        
+        function zoomOut() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1 / 1.5);
+        }
+        
+        function resetZoom() {
+            svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+        }
+        
+        function fitToView() {
+            if (!g || !svg || g.selectAll('.node').empty()) return;
+            
+            const nodes = g.selectAll('.node').data();
+            if (nodes.length === 0) return;
+            
+            const xExtent = d3.extent(nodes, d => d.x);
+            const yExtent = d3.extent(nodes, d => d.y);
+            
+            // 确保有有效的范围
+            if (!xExtent[0] || !xExtent[1] || !yExtent[0] || !yExtent[1]) return;
+            
+            const padding = 100;
+            const graphWidth = Math.max(xExtent[1] - xExtent[0], 200) + padding * 2;
+            const graphHeight = Math.max(yExtent[1] - yExtent[0], 200) + padding * 2;
+            
+            const scale = Math.min(width / graphWidth, height / graphHeight, 1.5);
+            const centerX = width / 2 - (xExtent[0] + xExtent[1]) / 2 * scale;
+            const centerY = height / 2 - (yExtent[0] + yExtent[1]) / 2 * scale;
+            
+            svg.transition().duration(1000).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(centerX, centerY).scale(scale)
+            );
+        }
+        
+        // 重新分布节点
+        function redistributeNodes() {
+            if (!g || !simulation || g.selectAll('.node').empty()) return;
+            
+            const nodes = g.selectAll('.node').data();
+            if (nodes.length === 0) return;
+            
+            // 重新分配节点位置
+            nodes.forEach((node, index) => {
+                // 确保节点是对象
+                if (typeof node === 'string') {
+                    console.error('节点数据不应该是字符串:', node);
+                    return;
+                }
+                
+                const nodeCount = nodes.length;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                let x, y;
+                if (nodeCount <= 1) {
+                    x = centerX;
+                    y = centerY;
+                } else if (nodeCount <= 6) {
+                    // 少量节点时使用圆形分布
+                    const angle = (index / nodeCount) * 2 * Math.PI;
+                    const radius = Math.min(width, height) * 0.25;
+                    x = centerX + Math.cos(angle) * radius;
+                    y = centerY + Math.sin(angle) * radius;
+                } else {
+                    // 多节点时使用网格+随机分布
+                    const cols = Math.ceil(Math.sqrt(nodeCount));
+                    const rows = Math.ceil(nodeCount / cols);
+                    const col = index % cols;
+                    const row = Math.floor(index / cols);
+                    
+                    const spacingX = (width * 0.8) / Math.max(cols - 1, 1);
+                    const spacingY = (height * 0.8) / Math.max(rows - 1, 1);
+                    
+                    x = (width * 0.1) + col * spacingX + (Math.random() - 0.5) * 60;
+                    y = (height * 0.1) + row * spacingY + (Math.random() - 0.5) * 60;
+                }
+                
+                // 更新节点位置
+                node.x = Math.max(60, Math.min(width - 60, x));
+                node.y = Math.max(60, Math.min(height - 60, y));
+                node.fx = null; // 清除固定位置
+                node.fy = null;
+            });
+            
+            // 重启仿真
+            simulation.alpha(1).restart();
+            
+            console.log('节点已重新分布');
+        }
+        
+        // 测试图表功能
+        function testGraph() {
+            const testData = {
+                nodes: [
+                    {id: 'node1', name: '节点1', type: 'concept'},
+                    {id: 'node2', name: '节点2', type: 'person'},
+                    {id: 'node3', name: '节点3', type: 'organization'},
+                    {id: 'node4', name: '节点4', type: 'location'},
+                    {id: 'node5', name: '节点5', type: 'technology'}
+                ],
+                links: [
+                    {source: 'node1', target: 'node2', relation: '关联'},
+                    {source: 'node2', target: 'node3', relation: '属于'},
+                    {source: 'node3', target: 'node4', relation: '位于'},
+                    {source: 'node4', target: 'node5', relation: '使用'},
+                    {source: 'node5', target: 'node1', relation: '应用'}
+                ]
+            };
+            
+            console.log('开始测试图表...');
+            updateGraph(testData);
+        }
+        
+        // 获取节点颜色
+        function getNodeColor(type) {
+            const colors = {
+                'person': '#ef4444',
+                'organization': '#3b82f6',
+                'location': '#10b981',
+                'concept': '#f59e0b',
+                'technology': '#8b5cf6',
+                'event': '#ec4899',
+                'entity': '#6b7280',
+                'default': '#6b7280'
+            };
+            return colors[type] || colors['default'];
+        }
+        
+        // 拖拽事件处理
+        function dragstarted(event, d) {
+            // 只有在真正开始拖拽时才激活（鼠标按下后移动）
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            
+            // 固定节点位置
+            d.fx = d.x;
+            d.fy = d.y;
+            
+            // 隐藏tooltip
+            hideTooltip();
+            
+            // 改变光标样式
+            d3.select(this).style('cursor', 'grabbing');
+            
+            // 高亮正在拖拽的节点
+            d3.select(this).style('stroke', '#ef4444').style('stroke-width', '4px');
+        }
+        
+        function dragged(event, d) {
+            // 更新节点位置
+            d.fx = event.x;
+            d.fy = event.y;
+            
+            // 手动更新节点位置，确保连线跟随
+            d.x = event.x;
+            d.y = event.y;
+            
+            // 立即更新连线位置
+            g.selectAll('.link')
+                .filter(link => link.source === d || link.target === d)
+                .attr('x1', link => link.source.x)
+                .attr('y1', link => link.source.y)
+                .attr('x2', link => link.target.x)
+                .attr('y2', link => link.target.y);
+                
+            // 立即更新节点标签位置
+            g.selectAll('.node-label')
+                .filter(node => node === d)
+                .attr('x', d.x)
+                .attr('y', d.y);
+                
+            // 立即更新连线标签位置
+            g.selectAll('.link-label')
+                .filter(link => link.source === d || link.target === d)
+                .attr('x', link => (link.source.x + link.target.x) / 2)
+                .attr('y', link => (link.source.y + link.target.y) / 2);
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            
+            // 释放节点位置固定
+            d.fx = null;
+            d.fy = null;
+            
+            // 恢复光标样式
+            d3.select(this).style('cursor', 'pointer');
+            
+            // 恢复正常边框
+            d3.select(this).style('stroke', 'none').style('stroke-width', '0px');
+            
+            // 重新启动仿真以稳定位置
+            simulation.alpha(0.1).restart();
+        }
+        
+        // Tooltip 功能
+        let tooltipTimeout;
+        function showTooltip(event, title, subtitle, isFixed = false) {
+            clearTimeout(tooltipTimeout);
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `<strong>${title}</strong><br/><small>${subtitle || ''}</small>`;
+            
+            if (isFixed) {
+                // 固定在节点附近，不跟随鼠标
+                const nodeElement = event.target;
+                const rect = nodeElement.getBoundingClientRect();
+                const containerRect = document.getElementById('graph-container').getBoundingClientRect();
+                
+                // 计算tooltip的位置，确保不会超出容器边界
+                let left = rect.left - containerRect.left + rect.width + 10;
+                let top = rect.top - containerRect.top - 10;
+                
+                // 边界检查
+                if (left + 200 > containerRect.width) { // 200是tooltip的大概宽度
+                    left = rect.left - containerRect.left - 210; // 显示在节点左边
+                }
+                if (top < 0) {
+                    top = rect.top - containerRect.top + rect.height + 10; // 显示在节点下方
+                }
+                
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            } else {
+                // 跟随鼠标（用于连线等）
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+            }
+            
+            tooltip.classList.add('show');
+        }
+        
+        function hideTooltip() {
+            clearTimeout(tooltipTimeout);
+            tooltipTimeout = setTimeout(() => {
+                document.getElementById('tooltip').classList.remove('show');
+            }, 150);
+        }
+        
+        // 添加日志
+        function addLog(level, message, timestamp = null) {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${level.toLowerCase()}`;
+            
+            const time = timestamp || new Date().toLocaleTimeString();
+            logEntry.innerHTML = `
+                <span class="timestamp">${time}</span>
+                <span class="level">${level}</span>
+                <span class="message">${message}</span>
+            `;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            // 限制日志数量
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+        
+        // 开始构建
+        startBtn.addEventListener('click', () => {
+            if (isBuilding) return;
+            
+            const entity = initialEntity.value.trim();
+            if (!entity) {
+                alert('请输入初始实体');
+                return;
+            }
+            
+            isBuilding = true;
+            startBtn.disabled = true;
+            stopBtn.style.display = 'inline-flex';
+            progressInfo.style.display = 'block';
+            
+            btnText.innerHTML = '<span class="loading-spinner"></span> 构建中...';
+            
+            // 清空图表并重置状态
+            clearGraph();
+            
+            // 隐藏QA结果
+            const qaContainer = document.getElementById('qa-result-container');
+            if (qaContainer) qaContainer.style.display = 'none';
+            
+            // 清空日志
+            logsContainer.innerHTML = '';
+            addLog('INFO', `开始构建知识图谱，初始实体：${entity}`);
+            
+            // 发送构建请求
+            fetch('/api/start_building', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    entity: entity,
+                    max_nodes: parseInt(maxNodes.value),
+                    sample_size: parseInt(sampleSize.value)
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.error) {
+                      addLog('ERROR', data.error);
+                      resetUI();
+                  } else {
+                      addLog('SUCCESS', data.message);
+                  }
+              }).catch(error => {
+                  addLog('ERROR', '请求失败：' + error.message);
+                  resetUI();
+              });
+        });
+        
+        // 停止构建
+        stopBtn.addEventListener('click', () => {
+            fetch('/api/stop_building', {
+                method: 'POST'
+            }).then(response => response.json())
+              .then(data => {
+                  addLog('INFO', data.message);
+                  resetUI();
+              });
+        });
+        
+        // 重置UI
+        function resetUI() {
+            isBuilding = false;
+            startBtn.disabled = false;
+            stopBtn.style.display = 'none';
+            btnText.textContent = '开始构建';
+            progressFill.style.width = '0%';
+            statusText.textContent = '已停止';
+        }
+        
+        // Socket.IO 事件监听
+        socket.on('connect', () => {
+            addLog('SUCCESS', '已连接到服务器');
+        });
+        
+        socket.on('disconnect', () => {
+            addLog('ERROR', '与服务器连接断开');
+            resetUI();
+        });
+        
+        socket.on('progress_update', (data) => {
+            progressFill.style.width = data.progress + '%';
+            statusText.textContent = data.step;
+            addLog('INFO', `${data.step} (${data.progress}%)`);
+        });
+        
+        socket.on('graph_update', (data) => {
+            updateGraph(data, true); // 增量更新
+            addLog('INFO', `图谱增量更新：${data.nodes.length} 个节点，${data.links.length} 个关系`);
+        });
+        
+        socket.on('sampled_graph_update', (data) => {
+            // 标记采样的节点和连线
+            const sampledNodes = data.nodes.map(node => ({...node, sampled: true}));
+            const sampledLinks = data.links.map(link => ({...link, sampled: true}));
+            
+            updateGraph({nodes: sampledNodes, links: sampledLinks}, true);
+            addLog('INFO', `星座图高亮：${data.nodes.length} 个节点，${data.links.length} 个关系`);
+        });
+        
+        socket.on('building_complete', (data) => {
+            if (data.success) {
+                addLog('SUCCESS', data.message);
+                progressFill.style.width = '100%';
+                statusText.textContent = '构建完成';
+                
+                // 显示QA结果
+                if (data.qa_result && Object.keys(data.qa_result).length > 0) {
+                    showQAResult(data.qa_result);
+                }
+            } else {
+                addLog('ERROR', data.message || data.error);
+            }
+            resetUI();
+        });
+        
+        // 显示QA结果
+        function showQAResult(qaResult) {
+            const qaContainer = document.getElementById('qa-result-container');
+            const qaQuestionText = document.getElementById('qa-question-text');
+            const qaAnswerText = document.getElementById('qa-answer-text');
+            const qaType = document.getElementById('qa-type');
+            const qaComplexity = document.getElementById('qa-complexity');
+            const qaReasoning = document.getElementById('qa-reasoning');
+            const qaReasoningText = document.getElementById('qa-reasoning-text');
+            
+            // 设置内容
+            qaQuestionText.textContent = qaResult.question || '暂无问题';
+            qaAnswerText.textContent = qaResult.answer || '暂无答案';
+            qaType.textContent = qaResult.question_type || '未知';
+            qaComplexity.textContent = qaResult.complexity || '未知';
+            
+            // 处理推理过程
+            if (qaResult.reasoning) {
+                qaReasoningText.textContent = qaResult.reasoning;
+                qaReasoning.style.display = 'block';
+            } else {
+                qaReasoning.style.display = 'none';
+            }
+            
+            // 显示QA容器
+            qaContainer.style.display = 'block';
+            
+            // 添加到日志
+            addLog('SUCCESS', '已生成QA问答对');
+        }
+        
+        // QA结果折叠/展开功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleQABtn = document.getElementById('toggle-qa-btn');
+            const qaResultContent = document.getElementById('qa-result-content');
+            
+            if (toggleQABtn) {
+                toggleQABtn.addEventListener('click', function() {
+                    if (qaResultContent.classList.contains('collapsed')) {
+                        qaResultContent.classList.remove('collapsed');
+                        toggleQABtn.textContent = '折叠';
+                    } else {
+                        qaResultContent.classList.add('collapsed');
+                        toggleQABtn.textContent = '展开';
+                    }
+                });
+            }
+        });
+        
+        // 窗口大小变化时重新初始化图表
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (svg && simulation) {
+                    const containerRect = graphContainer.getBoundingClientRect();
+                    const newWidth = containerRect.width;
+                    const newHeight = containerRect.height;
+                    
+                    if (newWidth !== width || newHeight !== height) {
+                        width = newWidth;
+                        height = newHeight;
+                        
+                        // 更新SVG尺寸
+                        svg.attr('width', width).attr('height', height);
+                        
+                        // 更新力导向图中心
+                        simulation.force('center', d3.forceCenter(width / 2, height / 2));
+                        simulation.force('x', d3.forceX(width / 2));
+                        simulation.force('y', d3.forceY(height / 2));
+                        simulation.alpha(0.3).restart();
+                    }
+                }
+            }, 250);
+        });
+    </script>
+</body>
+</html>

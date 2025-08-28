@@ -4,3 +4,4 @@ logs
 .idea
 TrajectoryGenerationPipeline/generation
 __pycache__
+.venv

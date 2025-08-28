@@ -4,6 +4,13 @@
   <img src="assets/logo.png" alt="logo" width="300"/>
 </div>
 
+<p align="center">
+｜🤗 <a href="https://huggingface.co/AQ-MedAI/MedResearcher-R1-32B" target="_blank">HuggingFace Model</a> ｜
+📄 <a href="https://arxiv.org/abs/2508.14880" target="_blank">arXiv</a> ｜
+</p>
+
+
+
 
 ![version](https://img.shields.io/badge/version-1.0.0-blue)
 
@@ -27,7 +34,7 @@
 
 **📊 Evaluation Pipeline**: Comprehensive model evaluation and validation framework for assessing reasoning performance across multiple benchmarks and validating the quality of synthesized training data.
 
-Together, these three components form a complete **training data production pipeline** from knowledge extraction to model training data generation and evaluation, enabling the creation of specialized reasoning models for domain-specific applications.
+These three components form a complete **training data production pipeline** from knowledge extraction to model training data generation and evaluation, enabling the creation of specialized reasoning models for domain-specific applications.
 
 
 ## Features
@@ -39,23 +46,27 @@ Together, these three components form a complete **training data production pipe
   - **Batch Processing System**: Concurrent QA generation with intelligent QPS control, progress monitoring, and resume capability
 
 - **Trajectory Generation Pipeline**
-  - **LangGraph-Based Agent Framework**: Multi-turn reasoning with tool integration and concurrent task processing
+  - **Agent Framework**: Multi-turn reasoning with tool integration and concurrent task processing
   - **Advanced Quality Filtering**: Token-based validation, tool call/response matching, and automated error detection
   - **Intelligent Rewriting System**: LLM-powered trajectory optimization with Masked Trajectory Guidance (MTG)
-  - **Comprehensive Evaluation**: Configurable judge prompts with multi-dataset support and automated scoring
 
 - **Evaluation Pipeline**
   - **Interactive Question Reasoning**: Single question mode with detailed step-by-step process visualization
   - **Batch Dataset Evaluation**: Multi-worker parallel processing with configurable rollouts and timeout controls
-  - **Dual-Stage Answer Judgment**: Precise matching combined with LLM semantic evaluation for accurate scoring
-  - **Comprehensive Metrics**: Pass@1/Pass@3 calculations, accuracy analysis, and performance statistics
-  - **Flexible Dataset Support**: Standard JSONL format with custom processor integration for specialized datasets
 
 ## Performance Highlights
 
 Using our knowledge-informed trajectory synthesis framework, we developed **MedResearcher-R1**, a specialized reasoning model that demonstrates exceptional performance across multiple challenging benchmarks including MedBrowseComp, GAIA, and XBench-DeepSearch.
 
 ![performance](assets/performance.jpg)
+
+## Open-Sourced Dataset
+
+We have open-sourced a high-quality QA dataset constructed through our KnowledgeGraphConstruction module. The dataset is available at [`TrajectoryGenerationPipeline/qa_data/open_data.jsonl`](TrajectoryGenerationPipeline/qa_data/open_data.jsonl) and contains:
+
+- **Complex reasoning question-answer pairs** generated using our graph method
+- **Detailed step-by-step reasoning paths** for each question, providing comprehensive problem-solving guidance
+- **Multi-hop reasoning challenges** requiring deep understanding and logical inference
 
 ## News
 
@@ -65,6 +76,7 @@ Using our knowledge-informed trajectory synthesis framework, we developed **MedR
 
 - [Features](#features)
 - [Performance Highlights](#performance-highlights)
+- [Open-Sourced Dataset](#open-sourced-dataset)
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Citations](#citations)
@@ -118,11 +130,14 @@ Then you can use the frontend interface at http://localhost:5000. You can start 
 
 📖 **For detailed feature descriptions, please refer to**: [features-guide.md](./features-guide.md)
 
-(3) use script to batch generate
+(3) use script to batch generate or use our provided dataset
 ```bash
 cd KnowledgeGraphConstruction
 # run batch generation - higher max-iterations will generate more complex question-answer pairs
 python batch_qa_cli.py --seed-file demo_medical.csv --output ../TrajectoryGenerationPipeline/dataset/qa.jsonl --max-iterations 1
+
+# alternatively, you can use our provided open-sourced dataset
+# cp ../TrajectoryGenerationPipeline/qa_data/open_data.jsonl ../TrajectoryGenerationPipeline/dataset/qa.jsonl
 ```
 
 (4) Launch trajectory generation and then postprocessing pipeline.
@@ -134,7 +149,7 @@ First, update `TrajectoryGenerationPipeline/src/trajectory_generation/config.jso
 - `llm_config.api_key_env`: Environment variable name for your API key (you still need to set up the actual environment variable). Example: `API_KEY`
 - `llm_config.api_base`: The API base URL of your model provider
 - `generation.model`: The model name from your provider. For OpenRouter, you can check available model names at https://openrouter.ai/models
-- `generation.dataset`: The dataset file in `TrajectoryGenerationPipeline/qa_data` directory (only accepts JSONL format)
+- `generation.dataset`: The dataset file in `TrajectoryGenerationPipeline/qa_data` directory (only accepts JSONL format). You can use our provided `open_data.jsonl` or generate your own dataset
 
 **Important**: The read tool requires an OpenRouter API key. Either:
 - Set your `OPENROUTER_API_KEY` environment variable, or  

@@ -1,0 +1,27 @@
+{
+  "generation": {
+    "model": "moonshotai/kimi-k2",
+    "dataset": "qa_example.jsonl",
+    "output": "generation",
+    "rollouts": 3,
+    "max_workers": 16,
+    "use_cheat_sheet": true,
+    "enabled_tools": ["search", "visit"]
+  },
+  "llm_config": {
+    "api_key_env": "OPENROUTER_API_KEY",
+    "api_base": "https://openrouter.ai/api/v1",
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "max_tokens": 4000,
+    "timeout": 120
+  },
+  "runtime": {
+    "max_llm_calls": 30,
+    "max_token_length": 40000,
+    "enable_progress_bar": true,
+    "save_intermediate_results": true,
+    "debug_mode": false,
+    "tokenizer_path": "tokenizers/Qwen2_5_32B"
+  }
+} 

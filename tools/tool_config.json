@@ -1,0 +1,37 @@
+{
+  "tools": {
+    "search": {
+      "enabled": true,
+      "class": "SearchTool",
+      "description": "Performs batched web searches: supply an array 'query'; the tool retrieves the top 10 results for each query in one call.",
+      "parameters": {
+        "query": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Array of query strings. Include multiple complementary search queries in a single call."
+        }
+      },
+      "required": ["query"],
+      "extra_config": {
+        "domain_filter": ["huggingface.co/datasets"]
+      }
+    },
+    "visit": {
+      "enabled": true,
+      "class": "VisitTool",
+      "description": "Visit webpage(s) and return the summary of the content.",
+      "parameters": {
+        "url": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "The URL(s) of the webpage(s) to visit. Can be a single URL or an array of URLs."
+        },
+        "goal": {
+          "type": "string",
+          "description": "The specific information goal for visiting webpage(s)."
+        }
+      },
+      "required": ["url", "goal"]
+    }
+  }
+} 

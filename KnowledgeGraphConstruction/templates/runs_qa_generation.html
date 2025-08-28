@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runs记录QA生成 - 智能知识图谱构建系统</title>
+    
+    <!-- 引入通用样式和页面专用样式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/runs_qa_generation.css') }}">
+    
+    <!-- 外部库 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <div class="header">
+            <h1>Runs记录QA生成</h1>
+            <p>从历史运行记录中提取图数据，采样子图生成高质量问答对</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 运行记录列表区域 -->
+            <div class="runs-section">
+                <div class="section-header">
+                    <h2>📁 可用运行记录</h2>
+                    <button id="refresh-runs" class="btn btn-secondary">刷新列表</button>
+                </div>
+                
+                <div class="runs-filters">
+                    <input type="text" id="search-runs" placeholder="搜索运行记录..." class="search-input">
+                    <select id="filter-type" class="filter-select">
+                        <option value="all">所有类型</option>
+                        <option value="kg_build">知识图谱构建</option>
+                        <option value="task">任务记录</option>
+                        <option value="batch">批量生成</option>
+                    </select>
+                    
+                    <!-- 时间区间选择器 -->
+                    <div class="time-filter-section">
+                        <div class="time-filter-header">
+                            <span class="filter-label">📅 时间筛选</span>
+                            <button id="clear-time-filter" class="btn btn-text">清除</button>
+                        </div>
+                        
+                        <div class="time-range-inputs">
+                            <div class="time-input-group">
+                                <label for="start-date">开始时间:</label>
+                                <input type="datetime-local" id="start-date" class="time-input">
+                            </div>
+                            <div class="time-input-group">
+                                <label for="end-date">结束时间:</label>
+                                <input type="datetime-local" id="end-date" class="time-input">
+                            </div>
+                        </div>
+                        
+                        <div class="quick-time-buttons">
+                            <button class="quick-time-btn" data-hours="24">最近1天</button>
+                            <button class="quick-time-btn" data-hours="72">最近3天</button>
+                            <button class="quick-time-btn" data-hours="168">最近1周</button>
+                            <button class="quick-time-btn" data-hours="720">最近1月</button>
+                        </div>
+                        
+                        <div class="time-actions">
+                            <button id="apply-time-filter" class="btn btn-secondary">应用筛选</button>
+                            <button id="select-in-range" class="btn btn-primary">选择时间段内所有记录</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="runs-list" class="runs-list">
+                    <div class="loading">正在加载运行记录...</div>
+                </div>
+            </div>
+            
+            <!-- 配置参数区域 -->
+            <div class="config-section">
+                <div class="section-header">
+                    <h2>⚙️ 生成配置</h2>
+                </div>
+                
+                <div class="config-grid">
+                    <div class="config-group">
+                        <label for="sample-size">子图采样大小</label>
+                        <input type="number" id="sample-size" value="10" min="3" max="50">
+                        <small>控制每个子图包含的节点数量</small>
+                    </div>
+                    
+                    <div class="config-group">
+                        <label for="sampling-algorithm">采样算法</label>
+                        <select id="sampling-algorithm">
+                            <option value="mixed">混合采样（随机选择）</option>
+                            <option value="augmented_chain">主干增强采样</option>
+                            <option value="community_core_path">社群核心路径采样</option>
+                            <option value="dual_core_bridge">双核桥接采样</option>
+                            <option value="max_chain">最长链采样</option>
+                            <option value="connected_subgraph">连通子图采样</option>
+                        </select>
+                        <small>不同算法生成不同复杂度的子图</small>
+                    </div>
+                    
+                    <div class="config-group">
+                        <label for="questions-per-run">每个记录生成问题数</label>
+                        <input type="number" id="questions-per-run" value="1" min="1" max="10">
+                        <small>每个运行记录生成的问答对数量</small>
+                    </div>
+                    
+                    <div class="config-group">
+                        <label for="use-unified-qa">QA生成器</label>
+                        <select id="use-unified-qa">
+                            <option value="true">统一QA生成器（推荐）</option>
+                            <option value="false">基础QA生成器</option>
+                        </select>
+                        <small>统一生成器支持信息模糊化</small>
+                    </div>
+                    
+                    <div class="config-group">
+                        <label for="qps-limit">QPS限制</label>
+                        <input type="number" id="qps-limit" value="2" min="0.1" max="10" step="0.1">
+                        <small>每秒最大请求数，防止系统过载（0表示无限制）</small>
+                    </div>
+                    
+                    <div class="config-group">
+                        <label for="parallel-workers">并发数量</label>
+                        <input type="number" id="parallel-workers" value="1" min="1" max="5">
+                        <small>同时处理的运行记录数量，配合QPS使用</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作区域 -->
+            <div class="actions-section">
+                <div class="selected-info">
+                    <span id="selected-count">已选择 0 个运行记录</span>
+                    <button id="clear-selection" class="btn btn-text">清空选择</button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="preview-graph" class="btn btn-secondary" disabled>预览图数据</button>
+                    <button id="start-generation" class="btn btn-primary" disabled>开始生成QA</button>
+                </div>
+            </div>
+            
+            <!-- 结果展示区域 -->
+            <div class="results-section" style="display: none;">
+                <div class="section-header">
+                    <h2>📊 生成结果</h2>
+                </div>
+                
+                <div id="generation-status" class="status-card">
+                    <div class="status-content">
+                        <div class="status-text">准备开始生成...</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="results-content" class="results-content">
+                    <!-- 结果内容将在这里显示 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图数据预览模态框 -->
+        <div id="graph-preview-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>图数据预览</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="graph-preview-content">
+                        <div class="loading">正在加载图数据...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-overlay"></div>
+        </div>
+    </div>
+
+    <!-- 引入页面脚本 -->
+    <script src="{{ url_for('static', filename='js/runs_qa_generation.js') }}"></script>
+</body>
+</html> 
