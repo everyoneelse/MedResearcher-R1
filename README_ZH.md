@@ -79,6 +79,7 @@
 - [开源数据集](#开源数据集)
 - [安装](#安装)
 - [快速开始](#快速开始)
+- [演示视频](#演示视频)
 - [引用](#引用)
 
 ## 安装
@@ -175,10 +176,10 @@ CUDA_VISIBLE_DEVICES=0,1 python -m sglang.launch_server --model-path /path/to/yo
 
 (7) 使用评估模块评估模型性能
 
-# 首先在 EvaluationPipeline/evaluation_config.json 中配置API密钥：
-# - llm.api_base：您的模型的API基础URL
-# - llm.model：指定您的模型名称（可选）
-# - llm.api_key_env：您的API密钥的环境变量名（可选）
+首先在 EvaluationPipeline/evaluation_config.json 中配置API密钥：
+- llm.api_base：您的模型的API基础URL
+- llm.model：指定您的模型名称（可选）
+- llm.api_key_env：您的API密钥的环境变量名（可选）
 ```bash
 cd ../EvaluationPipeline
 # 运行单问题评估
@@ -187,6 +188,10 @@ python eval_cli.py --mode interactive
 # 运行批量数据集评估
 python eval_cli.py --mode batch --dataset sample --workers 20
 ```
+
+## MedResearcher-R1 演示视频
+
+https://github.com/user-attachments/assets/xbench_demo.mp4
 
 ## 引用
 

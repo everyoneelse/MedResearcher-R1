@@ -79,6 +79,7 @@ We have open-sourced a high-quality QA dataset constructed through our Knowledge
 - [Open-Sourced Dataset](#open-sourced-dataset)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Demo Video](#demo-video)
 - [Citations](#citations)
 
 ## Installation
@@ -175,10 +176,10 @@ CUDA_VISIBLE_DEVICES=0,1 python -m sglang.launch_server --model-path /path/to/yo
 
 (7) Evaluate model performance using the Evaluation Pipeline
 
-# Configure API keys in EvaluationPipeline/evaluation_config.json first:
-# - llm.api_base: the API base URL of your model
-# - llm.model: specify your model name (optional)
-# - llm.api_key_env: environment variable name for your API key (optional)
+ Configure API keys in EvaluationPipeline/evaluation_config.json first:
+- llm.api_base: the API base URL of your model
+- llm.model: specify your model name (optional)
+- llm.api_key_env: environment variable name for your API key (optional)
 ```bash
 cd ../EvaluationPipeline
 # Run single question evaluation
@@ -187,6 +188,10 @@ python eval_cli.py --mode interactive
 # Run batch dataset evaluation
 python eval_cli.py --mode batch --dataset sample --workers 20
 ```
+
+## MedResearcher-R1 Demo Video
+
+https://github.com/user-attachments/assets/xbench_demo.mp4
 
 ## Citations
 
