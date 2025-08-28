@@ -7,6 +7,7 @@
 <p align="center">
 ｜🤗 <a href="https://huggingface.co/AQ-MedAI/MedResearcher-R1-32B" target="_blank">HuggingFace Model</a> ｜
 📄 <a href="https://arxiv.org/abs/2508.14880" target="_blank">arXiv</a> ｜
+🌐 <a href="README_ZH.md">中文</a> ｜
 </p>
 
 
@@ -64,9 +65,8 @@ Using our knowledge-informed trajectory synthesis framework, we developed **MedR
 
 We have open-sourced a high-quality QA dataset constructed through our KnowledgeGraphConstruction module. The dataset is available at [`TrajectoryGenerationPipeline/qa_data/open_data.jsonl`](TrajectoryGenerationPipeline/qa_data/open_data.jsonl) and contains:
 
-- **Complex reasoning question-answer pairs** generated using our graph method
+- **Complex reasoning question-answer pairs** Multi-hop qa-pairs generated using our graph method
 - **Detailed step-by-step reasoning paths** for each question, providing comprehensive problem-solving guidance
-- **Multi-hop reasoning challenges** requiring deep understanding and logical inference
 
 ## News
 
@@ -170,7 +170,7 @@ python src/postprocessing/pipeline.py --input_dir generation/your_model_name/you
 (6) When you finish the training of your model, you can evaluate the model by creating a server for the model via vllm or sglang
 ```bash
 pip install sglang[all]
-python -m sglang.launch_server --model-path /path/to/your/model --port 6001 --host 0.0.0.0 --mem-fraction-static 0.95 --tp-size 2
+CUDA_VISIBLE_DEVICES=0,1 python -m sglang.launch_server --model-path /path/to/your/model --port 6001 --host 0.0.0.0 --mem-fraction-static 0.95 --tp-size 2
 ```
 
 (7) Evaluate model performance using the Evaluation Pipeline
