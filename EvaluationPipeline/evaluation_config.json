@@ -1,0 +1,16 @@
+{
+  "llm": {
+    "model": "",
+    "api_key_env": "",
+    "api_base": "http://0.0.0.0:6001/v1",
+    "temperature": 0.6,
+    "max_retries": 10
+  },
+  "runtime": {
+    "max_llm_calls": 30,
+    "max_token_length": 32000,
+    "enable_progress_bar": true,
+    "save_intermediate_results": true,
+    "debug_mode": false
+  }
+} 

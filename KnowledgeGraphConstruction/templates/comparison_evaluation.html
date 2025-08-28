@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对比评测 - 智能知识图谱构建与QA评测系统</title>
+    
+    <!-- 引入通用样式和页面专用样式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comparison_evaluation.css') }}">
+    
+    <!-- Socket.IO客户端 -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <!-- 页面头部 -->
+        <header class="page-header">
+            <h1 class="page-title">🔄 对比评测</h1>
+            <p class="page-description">
+                选择两个数据集进行智能对比评测，通过LLM评判员评估QA质量差异，获得客观的数据集质量对比结果
+            </p>
+        </header>
+
+        <!-- 配置面板 -->
+        <div class="card config-panel">
+            <div class="card-header">
+                <span>⚙️</span>
+                评测配置
+            </div>
+            <div class="card-body">
+                <!-- 数据文件选择 -->
+                <div class="config-section">
+                    <h3 class="section-title">数据文件选择</h3>
+                    <div class="dataset-selector">
+                        <!-- 数据集A选择器 -->
+                        <div class="dataset-selector-item">
+                            <h4 class="dataset-label">🅰️ 数据集A</h4>
+                            <div class="dataset-dropdown">
+                                <button type="button" class="dataset-dropdown-btn" id="datasetA-btn">
+                                    <span class="selected-text">请选择数据文件...</span>
+                                    <span class="dropdown-arrow">▼</span>
+                                </button>
+                                <div class="dataset-dropdown-menu" id="datasetA-menu">
+                                    <div class="dropdown-loading">
+                                        <div class="loading-spinner"></div>
+                                        <span>加载数据文件中...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dataset-info" id="datasetA-info" style="display: none;">
+                                <span class="file-name"></span>
+                                <span class="file-count"></span>
+                            </div>
+                        </div>
+
+                        <!-- 数据集B选择器 -->
+                        <div class="dataset-selector-item">
+                            <h4 class="dataset-label">🅱️ 数据集B</h4>
+                            <div class="dataset-dropdown">
+                                <button type="button" class="dataset-dropdown-btn" id="datasetB-btn">
+                                    <span class="selected-text">请选择数据文件...</span>
+                                    <span class="dropdown-arrow">▼</span>
+                                </button>
+                                <div class="dataset-dropdown-menu" id="datasetB-menu">
+                                    <div class="dropdown-loading">
+                                        <div class="loading-spinner"></div>
+                                        <span>加载数据文件中...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dataset-info" id="datasetB-info" style="display: none;">
+                                <span class="file-name"></span>
+                                <span class="file-count"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 评测参数设置 -->
+                <div class="config-section">
+                    <h3 class="section-title">评测参数</h3>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label class="param-label" for="sampleCount">
+                                📊 采样数量
+                            </label>
+                            <p class="param-description">从每个数据集中随机采样的QA对数量</p>
+                            <input type="number" id="sampleCount" class="form-input" 
+                                   value="10" min="1" max="100" placeholder="输入采样数量">
+                        </div>
+
+                        <div class="param-card">
+                            <label class="param-label" for="evaluator">
+                                🤖 评价者
+                            </label>
+                            <p class="param-description">用于评价QA质量的AI模型</p>
+                            <select id="evaluator" class="form-select">
+                                <option value="gemini">Gemini</option>
+                            </select>
+                        </div>
+
+                        <div class="param-card">
+                            <label class="param-label" for="criteria">
+                                📋 评价标准
+                            </label>
+                            <p class="param-description">QA质量评价使用的标准</p>
+                            <select id="criteria" class="form-select">
+                                <option value="中文互联网QA质量">中文互联网QA质量</option>
+                            </select>
+                        </div>
+
+                        <div class="param-card">
+                            <label class="param-label" for="workers">
+                                ⚡ 并行Worker数
+                            </label>
+                            <p class="param-description">同时执行评测的并发数量</p>
+                            <input type="number" id="workers" class="form-input" 
+                                   value="2" min="1" max="10" placeholder="输入并行数">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="flex gap-md">
+                    <button id="startBtn" class="btn btn-primary">
+                        <span>🚀</span>
+                        开始对比评测
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" style="display: none;">
+                        <span>⏹️</span>
+                        停止评测
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评测状态和结果 -->
+        <div class="grid grid-cols-1">
+            <!-- 评测状态面板 -->
+            <div class="card status-panel">
+                <div class="card-header">
+                    <span>📈</span>
+                    评测状态
+                </div>
+                <div class="card-body">
+                    <!-- 进度显示 -->
+                    <div class="progress-section" style="display: none;">
+                        <div class="progress-info">
+                            <span class="progress-text">准备开始...</span>
+                            <span class="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="status-details">
+                            <div class="status-item">
+                                <span class="status-label">已完成对比</span>
+                                <span class="status-value">0 / 0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">数据集A胜利</span>
+                                <span class="status-value">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">数据集B胜利</span>
+                                <span class="status-value">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">并列</span>
+                                <span class="status-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 空状态 -->
+                    <div class="empty-state">
+                        <div class="empty-icon">🎯</div>
+                        <div class="empty-title">等待开始评测</div>
+                        <div class="empty-description">配置参数后点击"开始对比评测"按钮</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 对比结果显示区域 -->
+        <div class="comparison-results">
+            <!-- 结果将通过JavaScript动态加载 -->
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="card history-panel">
+            <div class="card-header">
+                <span>📚</span>
+                历史记录
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div class="history-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <div class="empty-title">暂无历史记录</div>
+                        <div class="empty-description">完成对比评测后，结果将显示在这里</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 返回导航 -->
+        <div class="flex justify-center" style="margin-top: 48px;">
+            <a href="/" class="btn btn-secondary">
+                <span>🏠</span>
+                返回主页
+            </a>
+        </div>
+    </div>
+
+    <!-- 引入页面专用JavaScript -->
+    <script src="{{ url_for('static', filename='js/comparison_evaluation.js') }}"></script>
+</body>
+</html> 

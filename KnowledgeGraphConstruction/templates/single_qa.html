@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单条QA测试 - 智能知识图谱构建系统</title>
+    
+    <!-- 引入通用样式和页面专用样式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/single_qa.css') }}">
+    
+    <!-- 外部库 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <div class="header">
+            <h1>单条QA测试</h1>
+            <p>基于单个实体构建知识图谱，实时可视化构建过程，生成高质量问答对</p>
+        </div>
+        
+        <div class="controls">
+            <div class="input-group">
+                <label for="initial-entity">初始实体</label>
+                <input type="text" id="initial-entity" placeholder="例如：蚂蚁集团" value="蚂蚁集团">
+            </div>
+            <div class="input-group">
+                <label for="max-relations">最大关系数</label>
+                <input type="number" id="max-relations" value="200" min="20" max="500">
+            </div>
+            <div class="input-group">
+                <label for="max-iterations">最大迭代次数</label>
+                <input type="number" id="max-iterations" value="10" min="1" max="20">
+            </div>
+            <div class="input-group">
+                <label for="sample-size">采样大小</label>
+                <input type="number" id="sample-size" value="12" min="3" max="50">
+            </div>
+            <div class="input-group">
+                <label for="sampling-algorithm">星座图采样方式</label>
+                <select id="sampling-algorithm">
+                    <option value="mixed">混合采样（随机选择）</option>
+                    <option value="augmented_chain">主干增强采样</option>
+                    <option value="community_core_path">社群核心路径采样</option>
+                    <option value="dual_core_bridge">双核桥接采样</option>
+                    <option value="max_chain">最长链采样</option>
+                </select>
+            </div>
+            <button id="start-btn" class="btn btn-primary">
+                <span class="btn-text">开始构建</span>
+            </button>
+            <button id="stop-btn" class="btn btn-secondary" disabled>停止</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>知识图谱可视化</span>
+                    <div class="status-indicators">
+                        <div class="stat-card">
+                            <span class="value" id="node-count">0</span>
+                            <span class="label">节点</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="value" id="link-count">0</span>
+                            <span class="label">关系</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="graph-container">
+                        <svg class="graph-svg" id="graph-svg"></svg>
+                        <div class="graph-controls">
+                            <button class="control-btn" onclick="zoomIn()" title="放大">🔍</button>
+                            <button class="control-btn" onclick="zoomOut()" title="缩小">🔎</button>
+                            <button class="control-btn" onclick="resetZoom()" title="重置">🎯</button>
+                            <button class="control-btn" onclick="fitView()" title="适应视图">📐</button>
+                            <button class="control-btn" onclick="redistributeNodes()" title="重新分布">🔄</button>
+                        </div>
+                        <div id="tooltip"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <span>📝 构建日志</span>
+                    <button class="btn-small" onclick="clearLogs()">清空日志</button>
+                </div>
+                <div class="panel-content">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text">等待开始...</div>
+                    </div>
+                    
+                    <div id="qa-result-container" style="display: none;">
+                        <div class="qa-result-header">
+                            <h3>🎯 生成的问答对</h3>
+                            <button class="btn-small" onclick="toggleQAResult()">折叠</button>
+                        </div>
+                        <div class="qa-result-content" id="qa-result-content">
+                            <!-- QA结果将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div id="log-container"></div>
+                    <!-- 新增：expansion信息显示 -->
+                    <div id="expansion-info" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入页面专用JavaScript -->
+    <script src="{{ url_for('static', filename='js/single_qa.js') }}"></script>
+</body>
+</html> 

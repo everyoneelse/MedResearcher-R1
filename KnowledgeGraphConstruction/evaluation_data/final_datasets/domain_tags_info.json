@@ -1,0 +1,61 @@
+{
+  "tags": {
+    "娱乐": {
+      "count": 0,
+      "description": ""
+    },
+    "经济": {
+      "count": 0,
+      "description": ""
+    },
+    "体育": {
+      "count": 0,
+      "description": ""
+    },
+    "其他": {
+      "count": 0,
+      "description": ""
+    },
+    "医疗": {
+      "count": 1,
+      "description": ""
+    },
+    "科技": {
+      "count": 0,
+      "description": ""
+    },
+    "历史": {
+      "count": 0,
+      "description": ""
+    },
+    "学术": {
+      "count": 0,
+      "description": ""
+    },
+    "文学": {
+      "count": 0,
+      "description": ""
+    },
+    "文化": {
+      "count": 0,
+      "description": ""
+    },
+    "政治": {
+      "count": 0,
+      "description": ""
+    }
+  },
+  "total_processed": 1,
+  "last_updated": "2025-08-19T21:25:30.028494",
+  "file_processing_status": {
+    "sample.jsonl": {
+      "processed": true,
+      "processed_count": 1,
+      "last_processed": "2025-08-19T21:25:30.026610",
+      "file_modified": "2025-08-19T19:24:15.606831",
+      "tags": [
+        "医疗"
+      ]
+    }
+  }
+}

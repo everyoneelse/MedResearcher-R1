@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>领域标签管理 - 智能知识图谱构建系统</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/domain_tags.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 文件夹处理区域 -->
+            <div class="card">
+                <div class="card-header">
+                    📂 文件夹批量处理
+                </div>
+                <div class="card-body">
+                    <div class="folder-input-section">
+                        <div class="form-group">
+                            <label class="form-label">文件夹路径:</label>
+                            <div class="folder-input-wrapper">
+                                <input type="text" id="folderPath" class="form-input" 
+                                       placeholder="手动输入文件夹路径或点击选择按钮...">
+                                <input type="file" id="folderSelector" webkitdirectory directory multiple style="display: none;">
+                                <button id="browseFolderBtn" class="btn btn-outline">
+                                    📁 选择文件夹
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-options">
+                            <div class="form-check">
+                                <input type="checkbox" id="forceReprocess" class="form-checkbox">
+                                <label for="forceReprocess" class="form-check-label">强制重新处理所有文件</label>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button id="detectFolderBtn" class="btn btn-primary">
+                                <span class="loading-spinner" style="display: none;"></span>
+                                🤖 开始批量检测
+                            </button>
+                            <button id="getFolderInfoBtn" class="btn btn-secondary">
+                                📊 查看标签信息
+                            </button>
+                            <button id="clearResultsBtn" class="btn btn-outline">
+                                🗑️ 清空结果
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 处理进度区域 -->
+            <div class="card" id="progressCard" style="display: none;">
+                <div class="card-header">
+                    ⏳ 处理进度
+                </div>
+                <div class="card-body">
+                    <div class="progress-info">
+                        <div class="progress-text" id="progressText">准备开始...</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-stats" id="progressStats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签统计信息区域 -->
+            <div class="card" id="tagsInfoCard" style="display: none;">
+                <div class="card-header">
+                    📊 标签统计信息
+                    <div class="card-actions">
+                        <button id="exportTagsBtn" class="btn btn-sm btn-outline">📥 导出</button>
+                        <button id="refreshTagsBtn" class="btn btn-sm btn-secondary">🔄 刷新</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="tagsInfoContainer">
+                        <!-- 标签信息将动态插入这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签筛选区域 -->
+            <div class="card" id="tagFilterCard" style="display: none;">
+                <div class="card-header">
+                    🏷️ 标签筛选
+                    <small class="filter-description" id="filterDescription">（多选标签时显示同时包含所有标签的数据）</small>
+                    <div class="card-actions">
+                        <button id="clearFilterBtn" class="btn btn-sm btn-outline">清空筛选</button>
+                        <button id="selectAllTagsBtn" class="btn btn-sm btn-secondary">全选</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                                    <div class="filter-summary" id="filterSummary" style="display: none;">
+                    <span class="filter-text">已选择 <strong id="selectedTagCount">0</strong> 个标签</span>
+                    <span class="filter-text">匹配 <strong id="filteredFileCount">0</strong> 条数据</span>
+                </div>
+                    <div class="tag-filter-container" id="tagFilterContainer">
+                        <!-- 标签筛选选项将动态插入这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据展示区域 -->
+            <div class="card" id="dataDisplayCard" style="display: none;">
+                <div class="card-header">
+                    📄 数据展示
+                    <div class="card-actions">
+                        <select id="pageSizeSelect" class="form-select">
+                            <option value="10">10条/页</option>
+                            <option value="20" selected>20条/页</option>
+                            <option value="50">50条/页</option>
+                            <option value="100">100条/页</option>
+                            <option value="200">200条/页</option>
+                            <option value="500">500条/页</option>
+                        </select>
+                        <span class="data-stats" id="dataStats">共 0 条数据</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="dataContainer">
+                        <!-- 数据内容将动态插入这里 -->
+                    </div>
+                    <div class="pagination-container" id="paginationContainer" style="display: none;">
+                        <div class="pagination-info" id="paginationInfo">
+                            显示第 1-10 条，共 0 条数据
+                        </div>
+                        <div class="pagination-controls" id="paginationControls">
+                            <button id="firstPageBtn" class="btn btn-sm btn-outline">首页</button>
+                            <button id="prevPageBtn" class="btn btn-sm btn-outline">上一页</button>
+                            <span class="page-input-group">
+                                <input type="number" id="currentPageInput" class="page-input" value="1" min="1">
+                                <span class="page-total">/ <span id="totalPages">1</span></span>
+                            </span>
+                            <button id="nextPageBtn" class="btn btn-sm btn-outline">下一页</button>
+                            <button id="lastPageBtn" class="btn btn-sm btn-outline">末页</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文件处理状态区域 -->
+            <div class="card" id="filesStatusCard" style="display: none;">
+                <div class="card-header">
+                    📁 文件处理状态
+                    <div class="card-actions">
+                        <button id="showAllFilesBtn" class="btn btn-sm btn-outline">显示全部</button>
+                        <button id="showProcessedOnlyBtn" class="btn btn-sm btn-secondary">仅已处理</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="filesStatusContainer">
+                        <!-- 文件状态信息将动态插入这里 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 单文件处理区域 -->
+            <div class="card">
+                <div class="card-header">
+                    📄 单文件处理
+                </div>
+                <div class="card-body">
+                    <div class="single-file-section">
+                        <div class="form-group">
+                            <label class="form-label">选择JSONL文件:</label>
+                            <input type="file" id="singleFileInput" class="form-input" 
+                                   accept=".jsonl" multiple>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">现有标签 (可选):</label>
+                            <textarea id="existingTags" class="form-textarea" 
+                                      placeholder="输入已有的标签，用逗号分隔..."></textarea>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button id="detectSingleBtn" class="btn btn-primary">
+                                <span class="loading-spinner" style="display: none;"></span>
+                                🔍 检测标签
+                            </button>
+                            <button id="downloadResultBtn" class="btn btn-secondary" style="display: none;">
+                                💾 下载结果
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通知容器 -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="/static/js/domain_tags.js"></script>
+</body>
+</html> 

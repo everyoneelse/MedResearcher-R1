@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据管理 - 智能知识图谱构建系统</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/data_management.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 文件选择区域 -->
+            <div class="card">
+                <div class="card-header">
+                    📂 数据文件选择
+                </div>
+                <div class="card-body">
+                    <div class="file-selection">
+                        <div class="form-group">
+                            <label class="form-label">选择数据目录:</label>
+                            <select id="directorySelect" class="form-select">
+                                <option value="">请选择数据目录...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="fileSelectGroup" style="display: none;">
+                            <label class="form-label">选择数据文件 (可多选):</label>
+                            <div id="fileCheckboxContainer" class="file-checkbox-container">
+                                <!-- 复选框列表将在这里动态生成 -->
+                            </div>
+                            <div class="file-selection-summary" id="fileSelectionSummary" style="display: none;">
+                                已选择 <span id="selectedFileCount">0</span> 个文件
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button id="loadFileBtn" class="btn btn-primary" disabled>
+                                <span class="loading-spinner" style="display: none;"></span>
+                                📖 加载选中文件
+                            </button>
+                            <button id="refreshFilesBtn" class="btn btn-secondary">
+                                🔄 刷新列表
+                            </button>
+                            <button id="selectAllFilesBtn" class="btn btn-outline-secondary" style="display: none;">
+                                ✅ 全选
+                            </button>
+                            <button id="clearFileSelectionBtn" class="btn btn-outline-secondary" style="display: none;">
+                                ❌ 清除选择
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">已加载文件:</span>
+                                <span id="loadedFiles">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">总记录数:</span>
+                                <span id="recordCount">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">总文件大小:</span>
+                                <span id="totalFileSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">最后修改:</span>
+                                <span id="latestModifiedTime">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON转换工具 -->
+            <div class="card">
+                <div class="card-header">
+                    🔄 格式转换工具
+                </div>
+                <div class="card-body">
+                    <div class="convert-tool-section">
+                        <div class="tool-description">
+                            <h6>JSON转JSONL</h6>
+                            <p>将包含多个JSON对象的.json文件转换为.jsonl格式（每行一个JSON对象）</p>
+                        </div>
+                        <div class="tool-actions">
+                            <button id="convertJsonBtn" class="btn btn-primary">🔄 JSON转JSONL</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                        <!-- 数据操作工具栏 -->
+            <div class="card" id="dataToolbar" style="display: none;">
+                <div class="card-body">
+                    <!-- 筛选控件 -->
+                    <div class="toolbar-section">
+                        <h6 class="toolbar-title">🔍 筛选与分页</h6>
+                        <div class="toolbar-controls">
+                            <div class="control-group">
+                                <label>问题语言:</label>
+                                <select id="questionLangFilter" class="form-select-sm">
+                                    <option value="">全部</option>
+                                    <option value="zh">中文</option>
+                                    <option value="en">英文</option>
+                                    <option value="unknown">未检测</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>答案语言:</label>
+                                <select id="answerLangFilter" class="form-select-sm">
+                                    <option value="">全部</option>
+                                    <option value="zh">中文</option>
+                                    <option value="en">英文</option>
+                                    <option value="unknown">未检测</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>关键词:</label>
+                                <input type="text" id="keywordFilter" class="form-input-sm" placeholder="搜索...">
+                            </div>
+                            <div class="control-group">
+                                <label>领域标签:</label>
+                                <select id="domainTagFilter" class="form-select-sm">
+                                    <option value="">全部标签</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>泄漏状态:</label>
+                                <select id="leakageStatusFilter" class="form-select-sm">
+                                    <option value="">全部状态</option>
+                                    <option value="has_leakage_unfixed">有泄漏(未修复)</option>
+                                    <option value="has_leakage_fixed">有泄漏(已修复)</option>
+                                    <option value="no_leakage">无泄漏</option>
+                                    <option value="unknown">未识别</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>
+                                    <input type="checkbox" id="showModifiedOnly" style="margin-right: 4px;">
+                                    <span>仅显示有改动数据</span>
+                                </label>
+                            </div>
+                            <div class="control-group">
+                                <label>每页:</label>
+                                <select id="pageSizeSelect" class="form-select-sm">
+                                    <option value="10">10条</option>
+                                    <option value="20">20条</option>
+                                    <option value="50">50条</option>
+                                    <option value="100">100条</option>
+                                    <option value="200">200条</option>
+                                    <option value="500">500条</option>
+                                </select>
+                            </div>
+                            <button id="applyFilterBtn" class="btn btn-sm btn-primary">应用</button>
+                            <button id="clearFilterBtn" class="btn btn-sm btn-secondary">清除</button>
+                        </div>
+                    </div>
+
+                    <!-- 数据选择与操作 -->
+                    <div class="toolbar-section">
+                        <h6 class="toolbar-title">📋 数据选择与操作</h6>
+                        <div class="toolbar-controls">
+                            <div class="selection-info">
+                                <span id="selectionStatus" class="selection-status">已选择 0 个对象</span>
+                            </div>
+                            <div class="selection-controls">
+                                <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">✅ 全选当前页</button>
+                                <button id="selectAllDataBtn" class="btn btn-sm btn-outline-info">📋 全选所有数据</button>
+                                <button id="clearSelectionBtn" class="btn btn-sm btn-outline-secondary">❌ 清除选择</button>
+                                <button id="previewAllBtn" class="btn btn-sm btn-outline-info">👁️ 全部预览</button>
+                                <button id="hideAllPreviewBtn" class="btn btn-sm btn-outline-info" style="display: none;">👁️ 隐藏预览</button>
+                            </div>
+                        </div>
+                    </div>
+
+                                        <!-- 语言检测与实体替换 -->
+                    <div class="toolbar-section">
+                        <h6 class="toolbar-title">🤖 AI功能</h6>
+                        <div class="toolbar-controls">
+                            <div class="ai-controls">
+                                <button id="detectLanguageBtn" class="btn btn-sm btn-success">🔤 快速检测语言</button>
+                                <div class="llm-controls">
+                                    <button id="detectLanguageLLMBtn" class="btn btn-sm btn-success">🤖 LLM检测语言</button>
+                                    <div class="llm-settings">
+                                        <label>
+                                            <input type="checkbox" id="detectSelectedOnly" style="margin-right: 4px;">
+                                            <span>仅检测选中项</span>
+                                        </label>
+                                        <label>QPS限制:</label>
+                                        <input type="number" id="llmQpsLimit" class="form-input-xs" value="2" min="1" max="10" step="1">
+                                        <span class="help-text">次/秒</span>
+                                    </div>
+                                </div>
+                                <div class="leakage-detection-controls">
+                                    <button id="detectLeakageBtn" class="btn btn-sm btn-primary">🛡️ 信息泄漏检测</button>
+                                    <div class="leakage-settings">
+                                        <label>
+                                            <input type="checkbox" id="autoFixLeakage" style="margin-right: 4px;" checked>
+                                            <span>自动修正泄漏</span>
+                                        </label>
+                                        <label>QPS限制:</label>
+                                        <input type="number" id="leakageQpsLimit" class="form-input-xs" value="1" min="1" max="5" step="1">
+                                        <span class="help-text">次/秒</span>
+                                    </div>
+                                </div>
+                                <div class="replacement-controls" id="replacementControls" style="display: none;">
+                                    <button id="previewReplacementBtn" class="btn btn-sm btn-warning">👁️ 预览替换</button>
+                                    <button id="applyReplacementBtn" class="btn btn-sm btn-danger">🔄 执行替换</button>
+                                    <button id="reverseReplaceBtn" class="btn btn-sm btn-outline-warning">🔄 反向替换</button>
+                                </div>
+                                <div class="text-cleaning-controls">
+                                    <button id="customCleanBtn" class="btn btn-sm btn-info">🧹 自定义清理</button>
+                                    <button id="entityKeyCleanBtn" class="btn btn-sm btn-info">🔑 实体键清理</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 保存设置 -->
+                    <div class="toolbar-section">
+                        <h6 class="toolbar-title">💾 保存设置</h6>
+                        <div class="toolbar-controls">
+                            <label class="auto-save-toggle">
+                                <input type="checkbox" id="autoSaveMode">
+                                <span>自动保存模式</span>
+                            </label>
+                            <button id="saveChangesBtn" class="btn btn-sm btn-success" disabled>💾 保存修改</button>
+                            <button id="saveAsBtn" class="btn btn-sm btn-primary" disabled>📂 另存为</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据显示区域 -->
+            <div class="card" id="dataCard" style="display: none;">
+                <div class="card-header">
+                    📋 数据列表
+                    <div class="data-stats">
+                        <span>显示 <span id="displayedCount">0</span> / <span id="totalCount">0</span> 条</span>
+                        <span>已修改 <span id="modifiedCount">0</span> 条</span>
+                        <span id="saveStatus" class="save-status"></span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="data-list" id="dataList">
+                        <!-- 数据项将在这里动态插入 -->
+                    </div>
+                    <div class="pagination" id="pagination" style="display: none;">
+                        <!-- 分页控件 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 编辑数据项</h3>
+                <button class="modal-close" id="closeEditModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">问题:</label>
+                    <textarea id="editQuestion" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">答案:</label>
+                    <textarea id="editAnswer" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">原始推理路径:</label>
+                    <textarea id="editReasoningPath" class="form-input" rows="6" readonly style="background-color: #f8f9fa;"></textarea>
+                    <div class="reasoning-help">
+                        <small>原始推理路径（只读）</small>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">映射后推理路径:</label>
+                    <textarea id="editMappedReasoningPath" class="form-input" rows="8"></textarea>
+                    <div class="reasoning-help">
+                        <small>提示: 可以手动编辑或通过实体映射自动生成</small>
+                        <div class="reasoning-actions">
+                            <button type="button" id="extractEntitiesBtn" class="btn btn-sm btn-secondary">🔍 提取实体</button>
+                            <button type="button" id="showEntityMappingBtn" class="btn btn-sm btn-primary" style="display: none;">🔄 实体映射</button>
+                            <button type="button" id="previewReplacementBtn" class="btn btn-sm btn-success" style="display: none;">👁️ 预览替换</button>
+                            <button type="button" id="copyFromOriginalBtn" class="btn btn-sm btn-secondary">📋 复制原始</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 实体列表 -->
+                    <div id="entitiesList" class="entities-list" style="display: none;">
+                        <h4>识别到的实体:</h4>
+                        <div id="entitiesContainer"></div>
+                    </div>
+                    
+                    <!-- 实体映射区域 -->
+                    <div id="entityMappingArea" class="entity-mapping-area" style="display: none;">
+                        <h4>实体映射配置:</h4>
+                        <div id="mappingContainer"></div>
+                        <button type="button" id="applyReplacementBtn" class="btn btn-sm btn-primary">✅ 应用替换</button>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">问题语言:</label>
+                        <select id="editQuestionLang" class="form-select">
+                            <option value="zh">中文</option>
+                            <option value="en">英文</option>
+                            <option value="unknown">未知</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">答案语言:</label>
+                        <select id="editAnswerLang" class="form-select">
+                            <option value="zh">中文</option>
+                            <option value="en">英文</option>
+                            <option value="unknown">未知</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveEditBtn" class="btn btn-primary">💾 保存</button>
+                <button id="cancelEditBtn" class="btn btn-secondary">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚠️ 确认删除</h3>
+                <button class="modal-close" id="closeDeleteModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除这条数据吗？此操作不可撤销。</p>
+                <div class="delete-preview">
+                    <strong>问题:</strong> <span id="deletePreviewQuestion"></span>
+                </div>
+                <div class="delete-options" style="margin-top: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                        <input type="checkbox" id="deleteAndSave" checked>
+                        <span>删除后立即保存到文件</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmDeleteBtn" class="btn btn-danger">🗑️ 确认删除</button>
+                <button id="cancelDeleteBtn" class="btn btn-secondary">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 另存为模态框 -->
+    <div id="saveAsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📂 另存为新文件</h3>
+                <button class="modal-close" id="closeSaveAsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">新文件名:</label>
+                    <input type="text" id="newFileName" class="form-input" placeholder="输入新文件名（不包含.jsonl扩展名）">
+                    <div class="form-help">
+                        <small>将保存当前筛选和修改后的数据到新文件中</small>
+                    </div>
+                </div>
+                
+                <div class="save-options">
+                    <div class="option-group">
+                        <h4>保存选项:</h4>
+                        <label class="option-item">
+                            <input type="radio" name="saveScope" value="filtered" checked>
+                            <span>保存当前筛选的数据 (<span id="filteredCount">0</span> 条)</span>
+                        </label>
+                        <label class="option-item">
+                            <input type="radio" name="saveScope" value="all">
+                            <span>保存全部数据 (<span id="totalCount">0</span> 条)</span>
+                        </label>
+                        <label class="option-item">
+                            <input type="radio" name="saveScope" value="selected">
+                            <span>仅保存选中的数据 (<span id="selectedCount">0</span> 条)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="preview-info" id="savePreviewInfo">
+                    <h4>保存预览:</h4>
+                    <div class="preview-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">文件名:</span>
+                            <span class="stat-value" id="previewFileName">未设置</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">记录数:</span>
+                            <span class="stat-value" id="previewRecordCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">保存路径:</span>
+                            <span class="stat-value">evaluation_data/generated_datasets/</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmSaveAsBtn" class="btn btn-primary">💾 确认另存</button>
+                <button id="cancelSaveAsBtn" class="btn btn-secondary">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义清理模态框 -->
+    <div id="customCleanModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h5 class="modal-title">🧹 自定义文本清理</h5>
+                <button id="closeCustomCleanModal" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">清理目标:</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="cleanTarget" value="question" checked>
+                            <span>问题 (Question)</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="cleanTarget" value="answer">
+                            <span>答案 (Answer)</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="cleanTarget" value="both">
+                            <span>问题和答案</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">要清理的字符串 (每行一个):</label>
+                    <textarea id="customCleanText" class="form-textarea" rows="8" 
+                        placeholder="请输入要删除的字符串，每行一个&#10;例如：&#10;请详细说明&#10;请简要介绍&#10;等等"></textarea>
+                </div>
+                <div class="preview-section">
+                    <label class="form-label">预览 (前3条数据):</label>
+                    <div id="customCleanPreview" class="preview-content"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="previewCustomCleanBtn" class="btn btn-secondary">👁️ 预览效果</button>
+                <button id="applyCustomCleanBtn" class="btn btn-danger">🧹 执行清理</button>
+                <button id="cancelCustomCleanBtn" class="btn btn-secondary">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON转JSONL模态框 -->
+    <div id="convertJsonModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h5 class="modal-title">🔄 JSON转JSONL</h5>
+                <button id="closeConvertJsonModal" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">选择JSON文件:</label>
+                    <input type="file" id="jsonFileInput" accept=".json" class="form-control">
+                    <small class="help-text">支持包含多个JSON对象的.json文件（数组格式或多行格式）</small>
+                </div>
+                
+                <div class="form-group" id="jsonPreviewSection" style="display: none;">
+                    <label class="form-label">文件预览:</label>
+                    <div class="file-info">
+                        <div class="info-item">
+                            <span class="info-label">文件名:</span>
+                            <span class="info-value" id="jsonFileName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">文件大小:</span>
+                            <span class="info-value" id="jsonFileSize">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">JSON对象数量:</span>
+                            <span class="info-value" id="jsonObjectCount">-</span>
+                        </div>
+                    </div>
+                    <div class="preview-content">
+                        <label class="form-label">内容预览 (前3个对象):</label>
+                        <pre id="jsonContentPreview" class="json-preview"></pre>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="convertOptionsSection" style="display: none;">
+                    <label class="form-label">转换选项:</label>
+                    <div class="convert-options">
+                        <label class="option-item">
+                            <input type="text" id="outputFileName" class="form-input" placeholder="输出文件名（不含扩展名）">
+                            <span class="option-label">输出文件名 (.jsonl将自动添加)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="previewJsonBtn" class="btn btn-secondary" disabled>👁️ 预览</button>
+                <button id="executeConvertBtn" class="btn btn-primary" disabled>🔄 执行转换</button>
+                <button id="cancelConvertBtn" class="btn btn-secondary">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/data_management.js"></script>
+</body>
+</html> 

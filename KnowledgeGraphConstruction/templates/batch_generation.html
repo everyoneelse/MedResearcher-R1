@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量生成 - 智能知识图谱构建系统</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/batch_generation.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <div class="header">
+            <h1>⚡ 批量生成</h1>
+            <p>批量生成多个QA对，支持不同种子数据源和自定义参数配置</p>
+        </div>
+
+        <!-- 实体集管理 -->
+        <div class="config-section">
+            <h3 class="section-title">📋 实体集管理</h3>
+            
+            <!-- 导入数据区域 -->
+            <div class="import-section">
+                <h4 class="section-subtitle">数据导入</h4>
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label for="import-method">导入方式</label>
+                        <select id="import-method">
+                            <option value="manual_newline">手动输入 (换行分割)</option>
+                            <option value="manual_comma">手动输入 (逗号分割)</option>
+                            <option value="manual_semicolon">手动输入 (分号分割)</option>
+                            <option value="csv_file">CSV文件上传</option>
+                        </select>
+                        <div class="input-help">选择实体数据的导入方式</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="entity-set-name">实体集名称</label>
+                        <input type="text" id="entity-set-name" placeholder="例如：医学概念_2025">
+                        <div class="input-help">为这个实体集命名，用于保存和识别</div>
+                    </div>
+                </div>
+                
+                <!-- 手动输入区域 -->
+                <div id="manual-input-section">
+                    <div class="input-group">
+                        <label for="manual-entities">实体数据</label>
+                        <textarea id="manual-entities" placeholder="量子计算机&#10;人工智能&#10;基因编辑"></textarea>
+                        <div class="input-help" id="input-help-text">每行输入一个实体名称</div>
+                    </div>
+                </div>
+                
+                <!-- 文件上传区域 -->
+                <div id="file-upload-section" class="file-upload-section">
+                    <div class="input-group">
+                        <label for="csv-file">CSV文件</label>
+                        <input type="file" id="csv-file" accept=".csv" class="csv-file-input">
+                        <div class="input-help">上传CSV文件，系统将解析第一列作为实体列表</div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="save-entity-set-btn" class="btn btn-primary">
+                        <span>💾 保存实体集</span>
+                    </button>
+                    <button id="preview-entities-btn" class="btn btn-secondary">
+                        <span>👁️ 预览实体</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 实体集列表 -->
+            <div class="entity-sets-section divider-section">
+                <h4 class="section-subtitle">已保存的实体集</h4>
+                <div id="entity-sets-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>暂无保存的实体集</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量生成配置 -->
+        <div class="config-section">
+            <h3 class="section-title">⚙️ 批量生成</h3>
+            
+            <!-- 实体集选择 -->
+            <div class="generation-section">
+                <h4 class="section-subtitle">实体集选择</h4>
+                <div class="input-group">
+                    <label for="selected-entity-set">选择实体集</label>
+                    <select id="selected-entity-set">
+                        <option value="">请选择实体集...</option>
+                    </select>
+                    <div class="input-help">从已保存的实体集中选择用于生成</div>
+                </div>
+                
+                <div id="entity-set-info" class="entity-set-info">
+                    <div id="entity-set-details"></div>
+                </div>
+            </div>
+            
+            <!-- 生成参数 -->
+            <div class="generation-params divider-section">
+                <h4 class="section-subtitle">生成参数</h4>
+                <div class="config-grid">
+                    <div class="input-group">
+                        <label for="max-nodes">最大节点数</label>
+                        <input type="number" id="max-nodes" value="30" min="10" max="100">
+                        <div class="input-help">每个图谱的最大节点数量</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="max-iterations">最大迭代次数</label>
+                        <input type="number" id="max-iterations" value="3" min="1" max="10">
+                        <div class="input-help">知识图谱构建的迭代次数</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sample-size">采样大小</label>
+                        <input type="number" id="sample-size" value="8" min="3" max="20">
+                        <div class="input-help">星座图采样的节点数量</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="sampling-algorithm">星座图采样方式</label>
+                        <select id="sampling-algorithm">
+                            <option value="mixed">混合采样（随机选择）</option>
+                            <option value="augmented_chain">主干增强采样</option>
+                            <option value="community_core_path">社群核心路径采样</option>
+                            <option value="dual_core_bridge">双核桥接采样</option>
+                            <option value="max_chain">最长链采样</option>
+                        </select>
+                        <div class="input-help">选择图采样算法，影响星座图的拓扑结构</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="anonymize-prob">模糊化概率</label>
+                        <input type="number" id="anonymize-prob" value="0.3" min="0" max="1" step="0.1">
+                        <div class="input-help">实体信息模糊化的概率</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="parallel-workers">流水线并发数</label>
+                        <input type="number" id="parallel-workers" value="2" min="1" max="5">
+                        <div class="input-help">同时运行的流水线任务数，可以在状态列表中同时看到多个任务</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="button-group">
+                <button id="start-batch-btn" class="btn btn-primary">
+                    <span>🚀 开始批量生成</span>
+                </button>
+                <button id="stop-batch-btn" class="btn btn-secondary" disabled>
+                    <span>⏹️ 停止生成</span>
+                </button>
+                <button id="save-to-evaluation-btn" class="btn btn-secondary" disabled>
+                    <span>💾 保存到评测数据</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+            <!-- 生成结果面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>生成结果</span>
+                    <div class="status-grid">
+                        <div class="stat-card">
+                            <span class="value" id="completed-count">0</span>
+                            <span class="label">已完成</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="value" id="total-count">0</span>
+                            <span class="label">总数</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="results-container">
+                        <div class="results-empty-state">
+                            <div class="results-empty-icon">📋</div>
+                            <p>点击"开始批量生成"开始生成QA对</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度和日志面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>📝 进度和任务状态</span>
+                    <button class="btn-small" onclick="batchGenerationManager.resetTaskList()">重置状态</button>
+                </div>
+                <div class="panel-content">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text">等待开始...</div>
+                    </div>
+
+                    <!-- 任务状态列表 -->
+                    <div class="task-status">
+                        <div class="status-header">任务状态</div>
+                        <div class="task-list" id="task-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/batch_generation.js"></script>
+</body>
+</html> 

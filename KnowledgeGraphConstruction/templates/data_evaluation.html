@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据评测 - 智能知识图谱构建系统</title>
+    
+    <!-- 引入通用样式和页面专用样式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/data_evaluation.css') }}">
+    
+    <!-- 外部库 -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        {% include 'nav_bar.html' %}
+
+        <div class="header">
+            <h1>数据评测</h1>
+            <p>对生成的QA数据进行质量评测，支持多种评测模型和标准数据对比</p>
+        </div>
+
+        <!-- 得分对比表格 -->
+        <div class="score-comparison-section">
+            <div class="comparison-header">
+                <h3>评测得分对比</h3>
+                <div class="evaluation-mode-selector">
+                    <label for="comparison-mode">评测模式：</label>
+                    <select id="comparison-mode" onchange="updateComparisonChart()">
+                        <option value="R1-0528">R1-0528</option>
+                    </select>
+                </div>
+            </div>
+            <div class="comparison-chart-container">
+                <div id="comparison-chart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 数据集侧边栏 -->
+            <div class="sidebar">
+                <div class="sidebar-header">📁 数据集管理</div>
+                <div class="sidebar-content">
+                    <!-- 标准数据集 -->
+                    <div class="dataset-section">
+                        <div class="section-title">标准数据集</div>
+                        <ul class="dataset-list" id="standard-datasets">
+                            <!-- 标准数据集将在这里显示 -->
+                        </ul>
+                    </div>
+
+                    <!-- 生成数据集 -->
+                    <div class="dataset-section">
+                        <div class="section-title">生成数据集</div>
+                        <ul class="dataset-list" id="generated-datasets">
+                            <!-- 生成数据集将在这里显示 -->
+                        </ul>
+                    </div>
+
+                    <!-- 导入数据 -->
+                    <div class="import-section">
+                        <div class="import-title">导入数据</div>
+                        <div class="upload-area" id="upload-area">
+                            <div style="font-size: 2rem; margin-bottom: 8px;">📤</div>
+                            <p style="color: #4a5568; margin-bottom: 8px;">拖拽文件到此处或点击上传</p>
+                            <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">
+                                选择文件
+                            </button>
+                            <input type="file" id="file-input" style="display: none;" accept=".json,.jsonl" multiple>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要内容面板 -->
+            <div class="content-panel">
+                <div class="panel-header">
+                    <span id="panel-title">评测概览</span>
+                    <div>
+                        <button class="btn btn-secondary" onclick="refreshDatasets()">🔄 刷新</button>
+                        <button class="btn btn-secondary" onclick="exportResults()" id="export-btn" style="display: none;">📤 导出</button>
+                    </div>
+                </div>
+                <div class="panel-content" id="panel-content">
+                    <!-- 默认显示数据集概览 -->
+                    <div id="overview-content">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💾</div>
+                            <h3>选择数据集开始评测</h3>
+                            <p>从左侧选择一个数据集来查看详情和运行评测</p>
+                        </div>
+                    </div>
+
+                    <!-- 评测内容 -->
+                    <div id="evaluation-content" style="display: none;">
+                        <!-- 历史评测记录 -->
+                        <div class="evaluation-history">
+                            <h3 style="margin-bottom: 16px;">历史评测记录</h3>
+                            <div class="history-container" id="history-container">
+                                <div class="no-history">
+                                    <div style="text-align: center; color: #718096; padding: 40px;">
+                                        <div style="font-size: 3rem; margin-bottom: 16px;">📋</div>
+                                        <p>暂无评测记录</p>
+                                        <p style="font-size: 14px;">运行评测后，结果将在这里显示</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 评测配置 -->
+                        <div class="evaluation-config">
+                            <h3 style="margin-bottom: 16px;">⚙️ 运行评测</h3>
+                            <div class="config-grid">
+                                <div class="input-group">
+                                    <label for="evaluation-mode">评测模式</label>
+                                    <select id="evaluation-mode">
+                                        <option value="R1-0528">R1-0528</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="batch-size">流水线并发数</label>
+                                    <input type="number" id="batch-size" value="3" min="1" max="20">
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px;">
+                                <button class="btn btn-primary" id="start-evaluation-btn">
+                                    🚀 开始评测
+                                </button>
+                                <button class="btn btn-secondary" id="stop-evaluation-btn" disabled>
+                                    ⏹️ 停止评测
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 评测进度 -->
+                        <div class="evaluation-progress" id="evaluation-progress" style="display: none;">
+                            <h3 style="margin-bottom: 16px;">📊 评测进度</h3>
+                            <div class="progress-overview">
+                                <div class="progress-item">
+                                    <div class="progress-label">当前进度</div>
+                                    <div class="progress-value" id="overall-progress">0%</div>
+                                </div>
+                                <div class="progress-item">
+                                    <div class="progress-label">已完成</div>
+                                    <div class="progress-value" id="completed-tasks">0</div>
+                                </div>
+                                <div class="progress-item">
+                                    <div class="progress-label">总任务</div>
+                                    <div class="progress-value" id="total-tasks">0</div>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                            </div>
+                            <div class="task-status" id="task-status">
+                                <div class="status-header">任务状态</div>
+                                <div class="task-list" id="task-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- 评测结果 -->
+                        <div class="evaluation-results" id="evaluation-results" style="display: none;">
+                            <h3 style="margin-bottom: 16px;">评测结果</h3>
+                            
+                            <!-- 结果汇总 -->
+                            <div class="results-summary">
+                                <div class="summary-card">
+                                    <div class="summary-value" id="total-questions">0</div>
+                                    <div class="summary-label">数据条数</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-value" id="correct-count">0</div>
+                                    <div class="summary-label">正确数量</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-value" id="avg-score">0.0</div>
+                                    <div class="summary-label">平均得分</div>
+                                </div>
+                            </div>
+
+                            <!-- 详细结果表格 -->
+                            <div class="results-table">
+                                <div class="table-header">详细评测结果</div>
+                                <div class="table-content" id="results-table-content">
+                                    <!-- 评测结果将在这里显示 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入页面专用JavaScript -->
+    <script src="{{ url_for('static', filename='js/data_evaluation.js') }}"></script>
+</body>
+</html> 
