@@ -1,0 +1,6 @@
+.env
+KnowledgeGraphConstruction/runs
+logs
+.idea
+TrajectoryGenerationPipeline/generation
+__pycache__
