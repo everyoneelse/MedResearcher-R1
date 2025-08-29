@@ -191,8 +191,10 @@ python eval_cli.py --mode batch --dataset sample --workers 20
 
 ## MedResearcher-R1 演示视频
 
-https://github.com/user-attachments/assets/xbench_demo.mp4
-
+<div align="center">
+    <h3>xbench_demo</h3>
+    <video src="assets/xbench_demo.mp4" />
+</div>
 ## 引用
 
 ```bibtex

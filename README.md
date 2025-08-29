@@ -74,13 +74,19 @@ We have open-sourced a high-quality QA dataset constructed through our Knowledge
 
 ## Links
 
-- [Features](#features)
-- [Performance Highlights](#performance-highlights)
-- [Open-Sourced Dataset](#open-sourced-dataset)
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [Demo Video](#demo-video)
-- [Citations](#citations)
+- [MedResearcher-R1: Knowledge-Informed Trajectory Synthesis Approach](#medresearcher-r1-knowledge-informed-trajectory-synthesis-approach)
+  - [Features](#features)
+  - [Performance Highlights](#performance-highlights)
+  - [Open-Sourced Dataset](#open-sourced-dataset)
+  - [News](#news)
+  - [Links](#links)
+  - [Installation](#installation)
+    - [MedResearcher-R1 environment](#medresearcher-r1-environment)
+      - [Using venv](#using-venv)
+      - [Using conda](#using-conda)
+  - [Quick start](#quick-start)
+  - [MedResearcher-R1 Demo Video](#medresearcher-r1-demo-video)
+  - [Citations](#citations)
 
 ## Installation
 
@@ -191,7 +197,10 @@ python eval_cli.py --mode batch --dataset sample --workers 20
 
 ## MedResearcher-R1 Demo Video
 
-https://github.com/user-attachments/assets/xbench_demo.mp4
+<div align="center">
+    <h3>xbench_demo</h3>
+    <video src="assets/xbench_demo.mp4" />
+</div>
 
 ## Citations
 

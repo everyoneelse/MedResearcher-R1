@@ -5,3 +5,5 @@ logs
 TrajectoryGenerationPipeline/generation
 __pycache__
 .venv
+.specstory
+.cursorindexingignore
