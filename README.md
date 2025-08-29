@@ -199,7 +199,7 @@ python eval_cli.py --mode batch --dataset sample --workers 20
 
 <div align="center">
     <h3>xbench_demo</h3>
-    <video src="assets/xbench_demo.mp4" />
+    <video src="https://github.com/user-attachments/assets/1746c2db-3631-4d1a-828d-06459192610e" />
 </div>
 
 ## Citations
