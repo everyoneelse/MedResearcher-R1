@@ -56,8 +56,6 @@ def detect_language(text: str) -> str:
 
 
 class LangGraphReasoningAgent:
-    """LangGraph-based ReAct agent using create_react_agent"""
-    
     def __init__(
         self,
         model: str = None,
