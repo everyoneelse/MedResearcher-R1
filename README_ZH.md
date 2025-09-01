@@ -74,13 +74,19 @@
 
 ## 链接
 
-- [功能特性](#功能特性)
-- [性能亮点](#性能亮点)
-- [开源数据集](#开源数据集)
-- [安装](#安装)
-- [快速开始](#快速开始)
-- [演示视频](#演示视频)
-- [引用](#引用)
+- [MedResearcher-R1: Knowledge-Informed Trajectory Synthesis Approach](#medresearcher-r1-knowledge-informed-trajectory-synthesis-approach)
+  - [功能特性](#功能特性)
+  - [性能亮点](#性能亮点)
+  - [开源数据集](#开源数据集)
+  - [新闻](#新闻)
+  - [链接](#链接)
+  - [安装](#安装)
+    - [MedResearcher-R1 环境](#medresearcher-r1-环境)
+      - [使用 venv](#使用-venv)
+      - [使用 conda](#使用-conda)
+  - [快速开始](#快速开始)
+  - [MedResearcher-R1 演示视频](#medresearcher-r1-演示视频)
+  - [引用](#引用)
 
 ## 安装
 
@@ -207,7 +213,10 @@ python eval_cli.py --mode batch --dataset sample --workers 20
 ```
 
 ## 其他
+
 <div align="center">
-[![Star History Chart](https://api.star-history.com/svg?repos=AQ-MedAI/MedResearcher-R1&type=Date)](https://www.star-history.com/#AQ-MedAI/MedResearcher-R1&Date)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AQ-MedAI/MedResearcher-R1&type=Date)](https://star-history.com/#AQ-MedAI/MedResearcher-R1&Date)
+
 </div>
 
