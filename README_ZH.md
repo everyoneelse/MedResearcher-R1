@@ -205,3 +205,9 @@ python eval_cli.py --mode batch --dataset sample --workers 20
   year={2025}
 }
 ```
+
+## 其他
+<div align="center">
+[![Star History Chart](https://api.star-history.com/svg?repos=AQ-MedAI/MedResearcher-R1&type=Date)](https://www.star-history.com/#AQ-MedAI/MedResearcher-R1&Date)
+</div>
+
