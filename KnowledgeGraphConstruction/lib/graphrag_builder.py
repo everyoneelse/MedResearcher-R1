@@ -1965,12 +1965,19 @@ global_search:
             # 打印部分实体信息（前5个）
             logger.info("实体样例:")
             for i, entity in enumerate(entities_list[:5]):
-                entity_id = entity.get('id', 'N/A')
-                entity_name = entity.get('name', 'N/A')
-                entity_type = entity.get('type', 'N/A')
-                entity_desc = entity.get('description', 'N/A')
-                short_id = entity_id[-8:] if len(entity_id) > 8 else entity_id
-                logger.info(f"  {i+1}. [{short_id}] {entity_name} [{entity_type}] - {entity_desc}")
+                if isinstance(entity, dict):
+                    entity_id = entity.get('id', 'N/A')
+                    entity_name = entity.get('name', 'N/A')
+                    entity_type = entity.get('type', 'N/A')
+                    entity_desc = entity.get('description', 'N/A')
+                    # 安全处理 entity_id，确保它是字符串类型
+                    if isinstance(entity_id, str) and len(entity_id) > 8:
+                        short_id = entity_id[-8:]
+                    else:
+                        short_id = str(entity_id) if entity_id != 'N/A' else 'N/A'
+                    logger.info(f"  {i+1}. [{short_id}] {entity_name} [{entity_type}] - {entity_desc}")
+                else:
+                    logger.info(f"  {i+1}. [警告] 非字典格式的实体: {entity}")
             
             return graph_info
             
